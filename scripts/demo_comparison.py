@@ -2,6 +2,10 @@
 Simple demo script for ES vs AdamW comparison.
 No CLI arguments - just modify the parameters directly in the script.
 Results are available in the global scope for interactive analysis.
+
+This version additionally tracks and plots the angle (cosine similarity)
+between the update direction from the initial state to each subsequent state,
+for both ES and AdamW.
 """
 #%%
 import sys
@@ -112,9 +116,12 @@ print("\n" + "=" * 70)
 print("Running Evolution Strategy")
 print("=" * 70)
 
+# Store initial position for delta calculations
+es_init_point = init_point.clone().detach()
+
 # Initialize ES
 es_optimizer = SeparableES(
-    init_params=init_point.clone(),
+    init_params=es_init_point.clone(),
     population_size=ES_POPULATION,
     sigma=ES_SIGMA,
     lr=ES_LR,
@@ -124,19 +131,24 @@ es_optimizer = SeparableES(
 print(f"Population size: {es_optimizer.population_size}")
 print(f"Initial sigma: {ES_SIGMA}")
 
-# Run ES
+# Run ES and record position history for angle calculation
 es_history = {
     'iterations': [],
     'loss': [],
     'distance': [],
     'grad_norm': [],
     'sigma': [],
+    'angle_deg': [],   # angle between delta vectors (degrees)
+    'positions': [],
 }
+
+# For ES: need initial delta (init_point -> first step solution)
+es_positions = []  # store positions at EVAL_INTERVAL for angle plot
 
 for iteration in range(MAX_ITERS):
     info = es_optimizer.step(landscape)
     current_solution = es_optimizer.get_current_solution()
-
+    
     if iteration % EVAL_INTERVAL == 0:
         metrics = compute_metrics(current_solution, landscape, optimum)
         es_history['iterations'].append(iteration)
@@ -144,10 +156,13 @@ for iteration in range(MAX_ITERS):
         es_history['distance'].append(metrics['distance'])
         es_history['grad_norm'].append(metrics['grad_norm'])
         es_history['sigma'].append(info['sigma'])
+        es_history['positions'].append(current_solution.clone().detach())
+        es_positions.append(current_solution.clone().detach())
 
         if iteration % 50 == 0:
             print(f"Iter {iteration:4d} | Loss: {info['best_fitness']:.6e} | "
                   f"Dist: {metrics['distance']:.6e} | Sigma: {info['sigma']:.4f}")
+
 
 es_final_solution = es_optimizer.get_current_solution()
 es_final_loss = es_history['loss'][-1]
@@ -166,18 +181,22 @@ print("\n" + "=" * 70)
 print("Running AdamW")
 print("=" * 70)
 
-# Initialize AdamW
-adamw_params = init_point.clone().requires_grad_(True)
+# Store initial for AdamW delta
+adamw_init_point = init_point.clone().detach()
+adamw_params = adamw_init_point.clone().requires_grad_(True)
 adamw_optimizer = torch.optim.AdamW([adamw_params], lr=ADAMW_LR)
 print(f"Learning rate: {ADAMW_LR}")
 
-# Run AdamW
 adamw_history = {
     'iterations': [],
     'loss': [],
     'distance': [],
     'grad_norm': [],
+    'angle_deg': [],  # angle trajectory
 }
+
+# For AdamW: store positions for delta calculations
+adamw_positions = []  # at each eval step
 
 for iteration in range(MAX_ITERS):
     adamw_optimizer.zero_grad()
@@ -192,10 +211,12 @@ for iteration in range(MAX_ITERS):
         adamw_history['loss'].append(metrics['loss'])
         adamw_history['distance'].append(metrics['distance'])
         adamw_history['grad_norm'].append(metrics['grad_norm'])
+        adamw_positions.append(adamw_params.detach().clone())
 
         if iteration % 50 == 0:
             print(f"Iter {iteration:4d} | Loss: {metrics['loss']:.6e} | "
                   f"Dist: {metrics['distance']:.6e} | Grad: {metrics['grad_norm']:.6e}")
+
 
 adamw_final_solution = adamw_params.detach().clone()
 adamw_final_loss = adamw_history['loss'][-1]
@@ -233,15 +254,58 @@ adamw_10x_iter = next((i for i, l in enumerate(adamw_history['loss'])
 print(f"  ES:    {es_10x_iter} iterations")
 print(f"  AdamW: {adamw_10x_iter} iterations")
 
+
 # ============================================================================
 # VISUALIZATION
 # ============================================================================
 
+# Compute ES projection statistics onto initial AdamW delta
+# Only if we have es_positions and adamw_positions
+es_proj_cosines = []
+es_proj_norms = []
+try:
+    # es_positions and adamw_positions are lists of parameter tensors at every eval step
+    if len(adamw_positions) >= 2 and 'positions' in es_history and len(es_history['positions']) >= 2:
+        adamw_delta0 = adamw_positions[-1] - adamw_positions[0]
+        adamw_delta0_norm = torch.norm(adamw_delta0)
+        for es_pos in es_history['positions']:
+            es_delta = es_pos - adamw_positions[0]  # project from same starting point
+            if torch.norm(es_delta) < 1e-12 or adamw_delta0_norm < 1e-12:
+                es_proj_cosines.append(0.0)
+                es_proj_norms.append(0.0)
+            else:
+                # Cosine similarity
+                cos_sim = torch.clamp(torch.dot(es_delta, adamw_delta0) /
+                                     (torch.norm(es_delta) * adamw_delta0_norm), -1.0, 1.0)
+                es_proj_cosines.append(cos_sim.item())
+                # Norm of projection onto adamw_delta0 direction
+                proj_length = torch.dot(es_delta, adamw_delta0) / adamw_delta0_norm
+                es_proj_norms.append(proj_length.item())
+    else:
+        es_proj_cosines = [0.0 for _ in es_history['iterations']]
+        es_proj_norms = [0.0 for _ in es_history['iterations']]
+except Exception as e:
+    print("Could not compute ES projections onto AdamW delta (missing or incompatible data):", e)
+    es_proj_cosines = [0.0 for _ in es_history['iterations']]
+    es_proj_norms = [0.0 for _ in es_history['iterations']]
+
+
+print(f"\nFinal ES projection onto AdamW delta:")
+# Print final parameter delta norm for ES and AdamW
+es_param_delta_norm = torch.norm(es_history['positions'][-1] - es_history['positions'][0]) if 'positions' in es_history and len(es_history['positions']) >= 2 else float('nan')
+adamw_param_delta_norm = torch.norm(adamw_positions[-1] - adamw_positions[0]) if len(adamw_positions) >= 2 else float('nan')
+print(f"Final Parameter Delta Norm:")
+print(f"  ES:    {es_param_delta_norm:.6e}")
+print(f"  AdamW: {adamw_param_delta_norm:.6e}")
+print(f"  Final Cosine:   {es_proj_cosines[-1]:.6f}")
+print(f"  Final ProjNorm: {es_proj_norms[-1]:.6e}")
+
+
 if SHOW_PLOTS:
     print("\nGenerating plots...")
 
-    fig = plt.figure(figsize=(16, 10))
-    gs = GridSpec(2, 3, figure=fig, hspace=0.3, wspace=0.3)
+    fig = plt.figure(figsize=(14, 14))
+    gs = GridSpec(3, 3, figure=fig, hspace=0.38, wspace=0.33)
 
     # Plot 1: Loss over iterations
     ax1 = fig.add_subplot(gs[0, 0])
@@ -308,18 +372,25 @@ if SHOW_PLOTS:
 
     # Plot 6: Optimization trajectory in sensitive subspace (2D projection)
     ax6 = fig.add_subplot(gs[1, 2])
-    # Project solutions to first 2 sensitive dimensions
     es_trajectory = []
     adamw_trajectory = []
-
     # Sample trajectory points
     sample_indices = np.linspace(0, len(es_history['iterations'])-1, 20, dtype=int)
-
     # We'll need to store trajectories - let's do a simple visualization instead
     ax6.text(0.5, 0.5, 'Trajectory visualization\nrequires storing\nintermediate solutions',
             ha='center', va='center', fontsize=12, transform=ax6.transAxes)
     ax6.set_title('Trajectory (Placeholder)', fontsize=14, fontweight='bold')
     ax6.axis('off')
+
+    # Plot 8: ES projection statistics onto AdamW initial delta
+    ax8 = fig.add_subplot(gs[2, :])
+    ax8.plot(es_history['iterations'], es_proj_cosines, label='ES-to-AdamW Initial Δ Cosine', color='C2', linewidth=2)
+    ax8.plot(es_history['iterations'], es_proj_norms, label='ES proj. norm on AdamW Initial Δ', color='C3', linewidth=2)
+    ax8.set_xlabel("Iteration", fontsize=12)
+    ax8.set_ylabel("Value", fontsize=12)
+    ax8.set_title("ES Projection onto AdamW Initial Δ-direction", fontsize=14, fontweight='bold')
+    ax8.legend(fontsize=12)
+    ax8.grid(True, alpha=0.3)
 
     plt.suptitle(f'{LANDSCAPE_TYPE.capitalize()} Landscape (d={DIM}, k={SENSITIVE_DIMS})',
                 fontsize=16, fontweight='bold', y=0.995)
