@@ -27,7 +27,7 @@ from core.utils import get_device, compute_metrics
 #%%
 # Landscape settings
 DIM = 1000                    # Total dimensionality
-SENSITIVE_DIMS = 5            # Number of sensitive dimensions (k << d)
+SENSITIVE_DIMS = 2            # Number of sensitive dimensions (k << d)
 LANDSCAPE_TYPE = 'quadratic'  # 'quadratic' or 'gaussian'
 SEED = 42                     # Random seed
 
@@ -140,11 +140,12 @@ es_history = {
     'sigma': [],
     'angle_deg': [],   # angle between delta vectors (degrees)
     'positions': [],
+    'Delta_norm': [],
 }
 
 # For ES: need initial delta (init_point -> first step solution)
 es_positions = []  # store positions at EVAL_INTERVAL for angle plot
-
+es_positions.append(es_init_point)
 for iteration in range(MAX_ITERS):
     info = es_optimizer.step(landscape)
     current_solution = es_optimizer.get_current_solution()
@@ -156,7 +157,7 @@ for iteration in range(MAX_ITERS):
         es_history['distance'].append(metrics['distance'])
         es_history['grad_norm'].append(metrics['grad_norm'])
         es_history['sigma'].append(info['sigma'])
-        es_history['positions'].append(current_solution.clone().detach())
+        es_history['Delta_norm'].append(torch.norm(current_solution - es_init_point))
         es_positions.append(current_solution.clone().detach())
 
         if iteration % 50 == 0:
@@ -193,11 +194,12 @@ adamw_history = {
     'distance': [],
     'grad_norm': [],
     'angle_deg': [],  # angle trajectory
+    'Delta_norm': [],
 }
 
 # For AdamW: store positions for delta calculations
 adamw_positions = []  # at each eval step
-
+adamw_positions.append(adamw_init_point.clone().detach())
 for iteration in range(MAX_ITERS):
     adamw_optimizer.zero_grad()
 
@@ -211,6 +213,7 @@ for iteration in range(MAX_ITERS):
         adamw_history['loss'].append(metrics['loss'])
         adamw_history['distance'].append(metrics['distance'])
         adamw_history['grad_norm'].append(metrics['grad_norm'])
+        adamw_history['Delta_norm'].append(torch.norm(adamw_params.detach().clone() - adamw_init_point))
         adamw_positions.append(adamw_params.detach().clone())
 
         if iteration % 50 == 0:
@@ -265,10 +268,10 @@ es_proj_cosines = []
 es_proj_norms = []
 try:
     # es_positions and adamw_positions are lists of parameter tensors at every eval step
-    if len(adamw_positions) >= 2 and 'positions' in es_history and len(es_history['positions']) >= 2:
+    if len(adamw_positions) >= 2 and len(es_positions) >= 2:
         adamw_delta0 = adamw_positions[-1] - adamw_positions[0]
         adamw_delta0_norm = torch.norm(adamw_delta0)
-        for es_pos in es_history['positions']:
+        for es_pos in es_positions[1:]:
             es_delta = es_pos - adamw_positions[0]  # project from same starting point
             if torch.norm(es_delta) < 1e-12 or adamw_delta0_norm < 1e-12:
                 es_proj_cosines.append(0.0)
@@ -292,7 +295,7 @@ except Exception as e:
 
 print(f"\nFinal ES projection onto AdamW delta:")
 # Print final parameter delta norm for ES and AdamW
-es_param_delta_norm = torch.norm(es_history['positions'][-1] - es_history['positions'][0]) if 'positions' in es_history and len(es_history['positions']) >= 2 else float('nan')
+es_param_delta_norm = torch.norm(es_positions[-1] - es_positions[0]) if len(es_positions) >= 2 else float('nan')
 adamw_param_delta_norm = torch.norm(adamw_positions[-1] - adamw_positions[0]) if len(adamw_positions) >= 2 else float('nan')
 print(f"Final Parameter Delta Norm:")
 print(f"  ES:    {es_param_delta_norm:.6e}")
@@ -333,8 +336,21 @@ if SHOW_PLOTS:
     ax2.legend(fontsize=11)
     ax2.grid(True, alpha=0.3)
 
-    # Plot 3: Gradient norm
+    # Plot 3: Delta norm (parameter change magnitude)
     ax3 = fig.add_subplot(gs[0, 2])
+    ax3.plot(es_history['iterations'], es_history['Delta_norm'],
+            label='ES', linewidth=2, marker='o', markersize=3, markevery=max(1, MAX_ITERS//20))
+    ax3.plot(adamw_history['iterations'], adamw_history['Delta_norm'],
+            label='AdamW', linewidth=2, marker='s', markersize=3, markevery=max(1, MAX_ITERS//20))
+    ax3.set_xlabel('Iteration', fontsize=12)
+    ax3.set_ylabel('Delta Norm', fontsize=12)
+    ax3.set_title('Parameter Delta Norm', fontsize=14, fontweight='bold')
+    ax3.set_yscale('log')
+    ax3.legend(fontsize=11)
+    ax3.grid(True, alpha=0.3)
+    
+    # Plot 3: Gradient norm
+    ax3 = fig.add_subplot(gs[1, 0])
     ax3.plot(es_history['iterations'], es_history['grad_norm'],
             label='ES', linewidth=2, marker='o', markersize=3, markevery=max(1, MAX_ITERS//20))
     ax3.plot(adamw_history['iterations'], adamw_history['grad_norm'],
@@ -347,7 +363,7 @@ if SHOW_PLOTS:
     ax3.grid(True, alpha=0.3)
 
     # Plot 4: ES Sigma adaptation
-    ax4 = fig.add_subplot(gs[1, 0])
+    ax4 = fig.add_subplot(gs[1, 1])
     ax4.plot(es_history['iterations'], es_history['sigma'],
             linewidth=2, color='green', marker='o', markersize=3, markevery=max(1, MAX_ITERS//20))
     ax4.set_xlabel('Iteration', fontsize=12)
@@ -356,29 +372,45 @@ if SHOW_PLOTS:
     ax4.set_yscale('log')
     ax4.grid(True, alpha=0.3)
 
-    # Plot 5: Loss (final 20%)
-    ax5 = fig.add_subplot(gs[1, 1])
-    start_idx = int(len(es_history['iterations']) * 0.8)
-    ax5.plot(es_history['iterations'][start_idx:], es_history['loss'][start_idx:],
-            label='ES', linewidth=2, marker='o', markersize=3, markevery=max(1, (MAX_ITERS-start_idx)//10))
-    ax5.plot(adamw_history['iterations'][start_idx:], adamw_history['loss'][start_idx:],
-            label='AdamW', linewidth=2, marker='s', markersize=3, markevery=max(1, (MAX_ITERS-start_idx)//10))
-    ax5.set_xlabel('Iteration', fontsize=12)
-    ax5.set_ylabel('Loss', fontsize=12)
-    ax5.set_title('Loss (Final 20%)', fontsize=14, fontweight='bold')
-    ax5.set_yscale('log')
-    ax5.legend(fontsize=11)
-    ax5.grid(True, alpha=0.3)
 
     # Plot 6: Optimization trajectory in sensitive subspace (2D projection)
     ax6 = fig.add_subplot(gs[1, 2])
-    es_trajectory = []
-    adamw_trajectory = []
     # Sample trajectory points
-    sample_indices = np.linspace(0, len(es_history['iterations'])-1, 20, dtype=int)
     # We'll need to store trajectories - let's do a simple visualization instead
-    ax6.text(0.5, 0.5, 'Trajectory visualization\nrequires storing\nintermediate solutions',
-            ha='center', va='center', fontsize=12, transform=ax6.transAxes)
+    # Annotate the final geometry, norm, cosine, and projection for ES and AdamW solutions
+    final_es = es_final_solution
+    final_adamw = adamw_final_solution
+    init = init_point
+
+    # Δ vectors from init to final points
+    delta_es = final_es - init
+    delta_adamw = final_adamw - init
+
+    # Norms
+    norm_es = torch.norm(delta_es).item()
+    norm_adamw = torch.norm(delta_adamw).item()
+
+    # Cosine similarity between Δ_ES and Δ_AdamW
+    cos_sim = torch.nn.functional.cosine_similarity(
+        delta_es.view(1, -1), delta_adamw.view(1, -1)
+    ).item()
+
+    # Projection of Δ_ES onto Δ_AdamW direction
+    adamw_dir = delta_adamw / (torch.norm(delta_adamw) + 1e-12)
+    proj_length = torch.dot(delta_es, adamw_dir).item()
+    proj_frac = proj_length / (norm_es + 1e-12)  # fraction of ES norm in AdamW direction
+    proj_frac_adamw = proj_length / (norm_adamw + 1e-12)  # fraction of AdamW norm in ES direction
+
+    ann_text = (f"‣ Final ES ||Δ||: {norm_es:.3f}\n"
+                f"‣ Final AdamW ||Δ||: {norm_adamw:.3f}\n"
+                f"‣ cos(Δ_ES, Δ_AdamW): {cos_sim:.3f}\n"
+                f"‣ proj_ES→AdamW: {proj_length:.3f} \n"
+                f"   {proj_frac*100:.1f}% of ES norm"
+                f"  {proj_frac_adamw*100:.1f}% of AdamW norm")
+
+    ax6.text(0.5, 0.5, ann_text,
+             ha='center', va='center', fontsize=12, transform=ax6.transAxes,
+             family='monospace', bbox=dict(boxstyle='round,pad=0.4', fc='wheat', ec='sienna', alpha=0.6))
     ax6.set_title('Trajectory (Placeholder)', fontsize=14, fontweight='bold')
     ax6.axis('off')
 
@@ -411,4 +443,205 @@ print("  - es_final_solution: ES final solution")
 print("  - adamw_final_solution: AdamW final solution")
 print("=" * 70)
 
+# %%
+# make two axes to project the trajectories onto
+# Ax1
+# one axes is one of the sensitive dimensions
+def plot_trajectory_projection(
+    vec1,
+    vec2,
+    traj1,
+    traj2,
+    init_point,
+    optimum,
+    xlabel,
+    ylabel,
+    title=None,
+    ax=None,
+    show=True,
+    legend=True,
+):
+    """
+    Plots the optimizer trajectories, initial point, and optimum projected onto two axes
+    defined by columns idx1 and idx2 of the landscape.rotation matrix.
+
+    Parameters
+    ----------
+    traj1 : torch.Tensor
+        Shape (num_iters, dim). First optimizer trajectory (e.g., AdamW)
+    traj2 : torch.Tensor
+        Shape (num_iters, dim). Second optimizer trajectory (e.g., ES)
+    init_point : torch.Tensor
+        Shape (dim,). Initial point
+    optimum : torch.Tensor
+        Shape (dim,). Landscape optimum
+    xlabel, ylabel : str
+        Axis labels
+    title : str or None
+        Optional plot title
+    ax : matplotlib Axes or None
+        Optional. Axis to plot on. If None, creates a new figure/axis.
+    show : bool
+        Whether to call plt.show(). Default True.
+    legend : bool
+        Whether to display the legend. Default True.
+    """
+    import matplotlib.pyplot as plt
+
+    if ax is None:
+        fig, ax = plt.subplots(figsize=(6, 6))
+
+    ax.scatter(init_point @ vec1, init_point @ vec2, s=50, label='Initial', marker='o', color='black')
+    ax.plot(traj1 @ vec1, traj1 @ vec2, label='AdamW', alpha=0.4)
+    ax.plot(traj2 @ vec1, traj2 @ vec2, label='ES', alpha=0.4)
+    ax.scatter(optimum @ vec1, optimum @ vec2, s=50, label='Optimum', marker='x', color='red')
+    ax.set_xlabel(xlabel)
+    ax.set_ylabel(ylabel)
+    if title:
+        ax.set_title(title)
+    ax.set_aspect('equal', adjustable='box')
+    if legend:
+        ax.legend()
+    if show:
+        plt.show()
+#%%
+
+adamw_traj = torch.stack(adamw_positions)
+es_traj = torch.stack(es_positions)
+optimum = landscape.optimum
+#%%
+vec1 = landscape.rotation[0, :]
+vec2 = landscape.rotation[1, :]
+plot_trajectory_projection(
+    vec1, vec2, adamw_traj, es_traj, init_point, optimum,
+    xlabel='Sensitive Dimension (0)',
+    ylabel='Sensitive Dimension (1)',
+    title=None
+)
+# Use the new functions for the two projections:
+vec1 = landscape.rotation[0, :]
+vec2 = landscape.rotation[2, :]
+plot_trajectory_projection(
+    vec1, vec2, adamw_traj, es_traj, init_point, optimum,
+    xlabel='Sensitive Dimension (0)',
+    ylabel='Flat Dimension (2)',
+    title=None
+)
+# Use the new functions for the two projections:
+vec1 = landscape.rotation[0, :]
+vec2 = landscape.rotation[5, :]
+plot_trajectory_projection(
+    vec1, vec2, adamw_traj, es_traj, init_point, optimum,
+    xlabel='Sensitive Dimension (0)',
+    ylabel='Flat Dimension (3)',
+    title=None
+)
+
+#%%
+fig, axs = plt.subplots(2, 2, figsize=(12, 12))
+vec1 = landscape.rotation[0, :]
+vec2 = landscape.rotation[1, :]
+plot_trajectory_projection(
+    vec1, vec2, adamw_traj, es_traj, init_point, optimum,
+    xlabel='Sensitive Dimension (0)',
+    ylabel='Sensitive Dimension (1)',
+    title=None,
+    ax=axs[0, 0], show=False
+)
+vec1 = landscape.rotation[0, :]
+vec2 = landscape.rotation[2, :]
+plot_trajectory_projection(
+    vec1, vec2, adamw_traj, es_traj, init_point, optimum,
+    xlabel='Sensitive Dimension (0)',
+    ylabel='Flat Dimension (2)',
+    title=None,
+    ax=axs[1, 0], show=False
+)
+vec1 = landscape.rotation[5, :]
+vec2 = landscape.rotation[1, :]
+plot_trajectory_projection(
+    vec1, vec2, adamw_traj, es_traj, init_point, optimum,
+    xlabel='Flat Dimension (5)',
+    ylabel='Sensitive Dimension (1)',
+    title=None,
+    ax=axs[0, 1], show=False
+)
+
+vec1 = landscape.rotation[5, :]
+vec2 = landscape.rotation[2, :]
+plot_trajectory_projection(
+    vec1, vec2, adamw_traj, es_traj, init_point, optimum,
+    xlabel='Flat Dimension (5)',
+    ylabel='Flat Dimension (2)',
+    title=None,
+    ax=axs[1, 1], show=False
+)
+plt.suptitle(f'{LANDSCAPE_TYPE.capitalize()} Landscape (d={DIM}, k={SENSITIVE_DIMS})',
+                fontsize=14, fontweight='bold', )
+plt.tight_layout()
+plt.show()
+
+# Ax2
+# one axis is the sensitive dimension, the other is the free dim
+# or one is the sensitive dimension, one is the free dim
+
+# %%
+
+def plot_trajectory_projections(landscape, adamw_traj, es_traj, init_point, optimum,
+                                axes_pairs=None, figtitle=None, figsize=(12, 12)):
+    """
+    Plots 2D projections of optimizer trajectories onto chosen axes.
+
+    Parameters
+    ----------
+    landscape : object
+        The landscape object with .rotation matrix.
+    adamw_traj : list or array
+        AdamW optimizer trajectory.
+    es_traj : list or array
+        Evolution Strategy trajectory.
+    init_point : torch.Tensor
+        The initial parameter vector.
+    optimum : torch.Tensor
+        The landscape optimum.
+    axes_pairs : list of tuples, optional
+        List of (i, j) axis tuples (indices) to plot, default picks four typical axes.
+    figtitle : str, optional
+        Figure title.
+    figsize : tuple, optional
+        Figure size.
+    """
+    if axes_pairs is None:
+        # Choose default four axis pairs: (0,1), (0,2), (5,1), (5,2)
+        axes_pairs = [(0, 1), (0, 2), (5, 1), (5, 2)]
+    fig, axs = plt.subplots(2, 2, figsize=figsize, sharex=True, sharey=True)
+    for k, (i, j) in enumerate(axes_pairs):
+        row, col = divmod(k, 2)
+        vec1 = landscape.rotation[i, :]
+        vec2 = landscape.rotation[j, :]
+
+        xlabel = f"{'Sensitive' if i < getattr(landscape, 'sensitive_dims', 1) else 'Flat'} Dimension ({i})"
+        ylabel = f"{'Sensitive' if j < getattr(landscape, 'sensitive_dims', 1) else 'Flat'} Dimension ({j})"
+        plot_trajectory_projection(
+            vec1, vec2, adamw_traj, es_traj, init_point, optimum,
+            xlabel=xlabel,
+            ylabel=ylabel,
+            title=None,
+            ax=axs[row, col], show=False
+        )
+    if figtitle is None:
+        figtitle = f'{LANDSCAPE_TYPE.capitalize()} Landscape (d={DIM}, k={SENSITIVE_DIMS})'
+    plt.suptitle(figtitle, fontsize=14, fontweight='bold')
+    plt.tight_layout()
+    plt.show()
+
+# Example usage with four chosen axes:
+plot_trajectory_projections(
+    landscape=landscape,
+    adamw_traj=adamw_traj,
+    es_traj=es_traj,
+    init_point=init_point,
+    optimum=optimum,
+    axes_pairs=[(0, 1), (4, 1), (0, 2), (4, 2)]
+)
 # %%

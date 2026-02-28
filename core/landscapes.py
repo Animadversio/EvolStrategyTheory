@@ -55,6 +55,7 @@ class RotatedQuadratic:
             sensitive_dims,
             device=self.device
         )
+        sensitive_eigs, _ = torch.sort(sensitive_eigs, descending=True)
         eigenvalues[:sensitive_dims] = sensitive_eigs
 
         # Create random rotation matrix
