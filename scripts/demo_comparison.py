@@ -586,7 +586,6 @@ plt.show()
 # or one is the sensitive dimension, one is the free dim
 
 # %%
-
 def plot_trajectory_projections(landscape, adamw_traj, es_traj, init_point, optimum,
                                 axes_pairs=None, figtitle=None, figsize=(12, 12)):
     """
