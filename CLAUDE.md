@@ -8,10 +8,16 @@ This is a research codebase for analyzing evolutionary strategy theory, specific
 
 ## Project Structure
 
-- `notebooks/` - Jupyter notebooks containing computational experiments and analysis
-  - `ordered_stats_compute.ipynb` - Main notebook computing order statistics and analyzing CMA-ES behavior
-- `core/` - (Currently empty) Intended for core library functions
-- `scripts/` - (Currently empty) Intended for standalone scripts
+- `core/` - Core library modules (PyTorch-based)
+  - `landscapes.py` - Rotated optimization landscapes (quadratic, Gaussian)
+  - `optimizers.py` - Evolution Strategy implementations (SeparableES, SimpleES)
+  - `utils.py` - Utility functions (device management, metrics, rotation matrices)
+- `scripts/` - Standalone analysis scripts
+  - `compare_optimizers.py` - CLI tool for ES vs AdamW comparison
+  - `demo_comparison.py` - Interactive demo script (no CLI, easy to modify)
+  - `quick_test.py` - Small-scale test script for verification
+- `notebooks/` - Jupyter notebooks for research analysis
+  - `ordered_stats_compute.ipynb` - Order statistics computation and CMA-ES analysis
 
 ## Key Research Components
 
@@ -36,6 +42,58 @@ The notebook analyzes CMA-ES recombination weights and their geometric propertie
 
 The analysis reveals how population size and dimensionality affect the geometric properties of CMA-ES gradient estimates.
 
+## Optimization Landscape Experiments
+
+### Core Library Components
+
+**Landscapes** (`core/landscapes.py`):
+- `RotatedQuadratic`: Quadratic landscape with k sensitive and (d-k) flat dimensions
+  - Hessian: H = R^T diag(eigenvalues) R where R is random rotation
+  - k large eigenvalues (sensitive), d-k small eigenvalues (flat)
+  - Non-axis-aligned via random orthogonal rotation
+- `RotatedGaussian`: Negative log-likelihood of Gaussian with rotated covariance
+  - k small variances (sensitive), d-k large variances (flat)
+
+**Optimizers** (`core/optimizers.py`):
+- `SeparableES`: Natural ES with CMA-ES recombination weights and step-size adaptation (CSA)
+- `SimpleES`: Baseline ES with finite-difference gradient estimation
+
+### Running Experiments
+
+**Quick Test** (verify installation):
+```bash
+mamba activate torch
+python scripts/quick_test.py
+```
+
+**Interactive Demo** (recommended for exploration):
+```bash
+mamba activate torch
+python scripts/demo_comparison.py
+```
+Modify parameters directly in `demo_comparison.py` (DIM, SENSITIVE_DIMS, etc.). Results are in global scope for post-analysis.
+
+**CLI Comparison Tool** (for systematic experiments):
+```bash
+mamba activate torch
+python scripts/compare_optimizers.py --dim 1000 --sensitive-dims 20 --max-iters 500
+```
+
+### Key Parameters
+
+- `dim`: Total dimensionality (typical: 100-10000)
+- `sensitive_dims`: Number of sensitive dimensions k where k << d
+- `landscape`: 'quadratic' or 'gaussian'
+- `eigenvalue_range`: Range for sensitive eigenvalues (affects condition number)
+- `flat_eigenvalue`: Eigenvalue for flat dimensions (typically 1e-6)
+
+### Typical Use Cases
+
+1. **Compare ES vs gradient-based on ill-conditioned problems**: High dimensionality (d=1000+), few sensitive dims (k=5-20)
+2. **Study effect of rotation**: Compare axis-aligned vs rotated landscapes
+3. **Analyze step-size adaptation**: Track ES sigma over iterations
+4. **Evaluate scalability**: Vary d and k to understand performance
+
 ## Working with Notebooks
 
 ### Running the Main Notebook
@@ -57,14 +115,28 @@ Located in `notebooks/ordered_stats_compute.ipynb`:
 - `moments_gaussian_orderstats_mc(lam, i, j, n_mc)` - Monte Carlo validation
 - `cmaes_weights(population_size)` - Generate CMA-ES recombination weights
 
+## Environment Setup
+
+**IMPORTANT**: Always use the `torch` mamba environment for running code:
+
+```bash
+mamba activate torch
+python scripts/demo_comparison.py
+```
+
+All Python code in this repository should be run with `mamba activate torch` first.
+
 ## Dependencies
 
 The code uses standard scientific Python libraries:
+- `torch` - Neural network library (used for optimization and tensor operations)
 - `numpy` - Array operations
 - `scipy` - Integration (`scipy.integrate`) and distributions (`scipy.stats`)
 - `matplotlib` - Plotting
 - `seaborn` - Statistical visualization
 - `pandas` - Data manipulation for results tables
+
+Install all dependencies: `pip install -r requirements.txt`
 
 ## Development Notes
 
