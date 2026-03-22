@@ -162,6 +162,165 @@ class SeparableES:
         }
 
 
+class ZScoreES:
+    """
+    Evolution Strategy with z-score normalized rewards.
+
+    Implements the ES update rule from Qiu et al. (2025):
+
+        theta_{t+1} = theta_t + alpha * (1/N) * sum_i Z_i * epsilon_i
+
+    where:
+        - epsilon_i ~ N(0, I) are i.i.d. perturbation vectors
+        - R_i = R(theta_t + sigma * epsilon_i) is the reward of the i-th perturbed model
+        - Z_i = (R_i - mu_R) / sigma_R is the z-score normalized reward
+        - alpha = sigma / 2 is maintained throughout (coupled to noise scale)
+
+    This is equivalent to OpenAI-ES (Salimans et al., 2017) with z-score
+    normalization instead of rank normalization, and the specific alpha=sigma/2
+    coupling from Qiu et al. (2025).
+
+    Parameters
+    ----------
+    init_params : torch.Tensor
+        Initial parameter vector (flattened model weights)
+    population_size : int
+        Number of perturbations N per generation
+    sigma : float
+        Noise scale for perturbations. Also sets lr = sigma / 2.
+    device : torch.device or str
+        Device to run on
+    reward_mode : str
+        'maximize' (default) or 'minimize' — whether rewards are maximized
+        or losses are minimized. If 'minimize', rewards are negated internally.
+    antithetic : bool
+        If True, use antithetic sampling: pairs (epsilon, -epsilon).
+        population_size must be even. Reduces variance at same cost.
+    eps : float
+        Small constant for numerical stability in z-score normalization.
+    """
+
+    def __init__(self, init_params, population_size=20, sigma=0.1,
+                 device='cpu', reward_mode='maximize', antithetic=False, eps=1e-8):
+        self.device = torch.device(device) if isinstance(device, str) else device
+        self.params = init_params.clone().to(self.device)
+        self.dim = len(self.params)
+        self.population_size = population_size
+        self.sigma = sigma
+        self.lr = sigma / 2.0          # alpha = sigma / 2, maintained throughout
+        self.reward_mode = reward_mode
+        self.antithetic = antithetic
+        self.eps = eps
+        self.generation = 0
+
+        if antithetic and population_size % 2 != 0:
+            raise ValueError("population_size must be even when antithetic=True")
+
+    def ask(self):
+        """
+        Sample N perturbation vectors epsilon_i ~ N(0, I).
+
+        Returns
+        -------
+        candidates : torch.Tensor
+            Perturbed parameter vectors, shape (population_size, dim)
+        perturbations : torch.Tensor
+            Standardized noise vectors epsilon_i, shape (population_size, dim)
+        """
+        if self.antithetic:
+            half = self.population_size // 2
+            eps_half = torch.randn(half, self.dim, device=self.device)
+            perturbations = torch.cat([eps_half, -eps_half], dim=0)
+        else:
+            perturbations = torch.randn(self.population_size, self.dim, device=self.device)
+
+        candidates = self.params.unsqueeze(0) + self.sigma * perturbations
+        return candidates, perturbations
+
+    def tell(self, perturbations, rewards):
+        """
+        Update parameters using z-score normalized rewards.
+
+        Parameters
+        ----------
+        perturbations : torch.Tensor
+            Noise vectors from ask(), shape (population_size, dim)
+        rewards : torch.Tensor
+            Scalar reward for each candidate, shape (population_size,)
+            Sign convention follows reward_mode ('maximize' or 'minimize').
+        """
+        rewards = rewards.to(self.device).float()
+
+        # If minimizing a loss, flip sign so higher = better
+        if self.reward_mode == 'minimize':
+            rewards = -rewards
+
+        # Z-score normalization: Z_i = (R_i - mu_R) / sigma_R
+        mu_r = rewards.mean()
+        std_r = rewards.std()
+        z_scores = (rewards - mu_r) / (std_r + self.eps)   # shape (N,)
+
+        # Weighted sum: (1/N) * sum_i Z_i * epsilon_i
+        # z_scores: (N,), perturbations: (N, dim) -> gradient: (dim,)
+        natural_grad = (z_scores.unsqueeze(1) * perturbations).mean(dim=0)
+
+        # Update: theta += alpha * natural_grad  (alpha = sigma / 2)
+        self.params = self.params + self.lr * natural_grad
+
+        self.generation += 1
+
+    def step(self, fitness_fn):
+        """
+        Perform one complete generation: ask → evaluate → tell.
+
+        Parameters
+        ----------
+        fitness_fn : callable
+            Takes a parameter vector (dim,) tensor, returns scalar.
+            Interpreted according to reward_mode.
+
+        Returns
+        -------
+        dict
+            'best_reward', 'mean_reward', 'std_reward', 'sigma', 'lr', 'generation'
+        """
+        candidates, perturbations = self.ask()
+
+        rewards = torch.tensor(
+            [fitness_fn(c).item() for c in candidates],
+            device=self.device
+        )
+
+        self.tell(perturbations, rewards)
+
+        return {
+            'best_reward': rewards.max().item(),
+            'mean_reward': rewards.mean().item(),
+            'std_reward': rewards.std().item(),
+            'sigma': self.sigma,
+            'lr': self.lr,
+            'generation': self.generation,
+        }
+
+    def set_sigma(self, sigma):
+        """Update sigma and keep lr = sigma / 2 in sync."""
+        self.sigma = sigma
+        self.lr = sigma / 2.0
+
+    def get_current_solution(self):
+        """Return current parameter vector (the mean/center)."""
+        return self.params.clone()
+
+    def get_state(self):
+        """Return optimizer state dict."""
+        return {
+            'params': self.params.clone(),
+            'sigma': self.sigma,
+            'lr': self.lr,
+            'generation': self.generation,
+        }
+
+
 class SimpleES:
     """
     Simple Evolution Strategy with gradient estimation via finite differences.

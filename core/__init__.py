@@ -1,7 +1,7 @@
 """Core library for optimization landscape analysis."""
 
 from .landscapes import RotatedQuadratic, RotatedGaussian
-from .optimizers import SeparableES
+from .optimizers import SeparableES, ZScoreES, SimpleES
 from .utils import random_rotation_matrix, get_device
 
 __all__ = [
