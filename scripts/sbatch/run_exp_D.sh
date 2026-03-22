@@ -1,15 +1,16 @@
 #!/bin/bash
 #SBATCH --job-name=expD_es_gd
 #SBATCH --partition=kempner_h100
-#SBATCH --account=kempner_fellow_binxuwang
+#SBATCH --account=kempner_binxuwang_lab
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=4
 #SBATCH --gres=gpu:1
-#SBATCH --mem=32G
+#SBATCH --mem=64G
 #SBATCH --time=02:00:00
-#SBATCH --output=/n/holylfs06/LABS/kempner_fellow_binxuwang/Users/binxuwang/DL_Projects/EvolStrategyTheory_validation/logs/expD_%j.out
-#SBATCH --error=/n/holylfs06/LABS/kempner_fellow_binxuwang/Users/binxuwang/DL_Projects/EvolStrategyTheory_validation/logs/expD_%j.err
+#SBATCH --exclude=holygpu8a19205
+#SBATCH --output=/n/holylfs06/LABS/kempner_fellow_binxuwang/Users/binxuwang/DL_Projects/EvolStrategyTheory_validation_ddof0_v2/logs/expD_%j.out
+#SBATCH --error=/n/holylfs06/LABS/kempner_fellow_binxuwang/Users/binxuwang/DL_Projects/EvolStrategyTheory_validation_ddof0_v2/logs/expD_%j.err
 
 # Usage:
 #   sbatch run_exp_D.sh                         # default settings
@@ -17,11 +18,13 @@
 #   sbatch --array=0-4 run_exp_D.sh             # sweep (see SIGMA_VALS below)
 
 set -e
-module load python/3.10.9-fasrc01 cuda/12.2.0-fasrc01 cudnn/8.9.2.26_cuda12-fasrc01
-source activate base  # or your conda env
+source /n/sw/Miniforge3-24.11.3-0/etc/profile.d/conda.sh
+source /n/sw/Miniforge3-24.11.3-0/etc/profile.d/mamba.sh
+export CONDA_ENVS_PATH=/n/home12/binxuwang/.conda/envs
+conda activate torch2
 
-REPO=/n/holylfs06/LABS/kempner_fellow_binxuwang/Users/binxuwang/Github/EvolStrategyTheory
-OUT=/n/holylfs06/LABS/kempner_fellow_binxuwang/Users/binxuwang/DL_Projects/EvolStrategyTheory_validation
+REPO=/n/home12/binxuwang/Github/EvolStrategyTheory
+OUT=/n/holylfs06/LABS/kempner_fellow_binxuwang/Users/binxuwang/DL_Projects/EvolStrategyTheory_validation_ddof0_v2
 mkdir -p $OUT/logs $OUT/figures $OUT/data
 
 cd $REPO
@@ -38,11 +41,12 @@ else
 fi
 
 python scripts/exp_D_multistep_gd_comparison.py \
-    --d 1000 \
-    --k 20 \
-    --N 50 \
+    --d 5000 \
+    --k 2500 \
+    --flat 0.0 \
+    --N 30 \
     --sigma $SIGMA \
-    --xi 0.0 \
+    --xi 0.1 \
     --T 500 \
     --n_trials 300 \
     --theta0_norm 10.0 \

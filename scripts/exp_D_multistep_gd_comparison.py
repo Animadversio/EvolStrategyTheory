@@ -456,8 +456,9 @@ def exp_D2(traj_coords, theta0, U, lam, args, gamma0, figs, data, tag):
 
     # D2a: theory vs empirical decay rate
     ax = axes[0]
+    mode_colors = plt.cm.tab20(np.linspace(0, 1, n_modes))
     ax.scatter(theory_decay_rates[:n_modes], emp_rates,
-               c=COLORS[:n_modes], s=60, zorder=5)
+               c=mode_colors, s=60, zorder=5)
     lim_min = min(theory_decay_rates[:n_modes].min(), emp_rates.min()) * 1.1
     lim_max = max(theory_decay_rates[:n_modes].max(), emp_rates.max()) * 0.9
     ax.plot([lim_min, lim_max], [lim_min, lim_max], "k--", lw=1, label="y=x")
