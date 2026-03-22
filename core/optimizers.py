@@ -52,7 +52,7 @@ class SeparableES:
         self.weights = weights / weights.sum()  # Normalize to sum to 1
 
         # Effective variance (for adaptive step size)
-        self.mueff = 1.0 / (self.weights ** 2).sum()
+        self.mueff = (1.0 / (self.weights ** 2).sum()).item()
 
         # Evolution path for step size adaptation (cumulative)
         self.ps = torch.zeros(self.dim, device=self.device)
