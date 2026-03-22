@@ -16,12 +16,24 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import torch
 import numpy as np
+import seaborn as sns
 import matplotlib; matplotlib.use('Agg')
 import matplotlib.pyplot as plt
+matplotlib.rcParams['pdf.fonttype'] = 42   # TrueType → editable text in PDF
+matplotlib.rcParams['ps.fonttype']  = 42
+matplotlib.rcParams['font.family']  = 'sans-serif'
+
+
+def save_fig(fig, stem):
+    """Save figure as both PNG (150 dpi) and PDF (vector fonts)."""
+    fig.savefig(FIGS / f'{stem}.png', dpi=150, bbox_inches='tight')
+    fig.savefig(FIGS / f'{stem}.pdf', bbox_inches='tight')
+    plt.close(fig)
+    print(f"  → saved {stem}.png + .pdf", flush=True)
 import pandas as pd
 
 # ── paths ─────────────────────────────────────────────────────────────────────
-STORE = Path("/n/holylfs06/LABS/kempner_fellow_binxuwang/Users/binxuwang/DL_Projects/EvolStrategyTheory_validation")
+STORE = Path("/n/holylfs06/LABS/kempner_fellow_binxuwang/Users/binxuwang/DL_Projects/EvolStrategyTheory_validation_ddof0_v2")
 FIGS  = STORE / "figures"
 DATA  = STORE / "data"
 for p in [FIGS, DATA]: p.mkdir(parents=True, exist_ok=True)
@@ -63,7 +75,7 @@ def measure_flat_step(sigma, N, d, nmc=2000):
         b = min(chunk, nmc - cnt)
         eps = torch.randn(b, N, d, device=DEVICE)
         R   = torch.randn(b, N, device=DEVICE)          # flat: rewards are noise
-        Z   = (R - R.mean(1, keepdim=True)) / (R.std(1, keepdim=True) + 1e-9)
+        Z   = (R - R.mean(1, keepdim=True)) / (R.std(1, keepdim=True, correction=0) + 1e-9)
         dth = (alpha / N) * (Z.unsqueeze(-1) * eps).sum(1)  # (b, d)
         total += (dth ** 2).sum(-1).sum().item()
         cnt   += b
@@ -106,20 +118,21 @@ for ai, d in enumerate(D_VALS):
     axes[ai].set_xlabel('N (population size)'); axes[ai].set_ylabel(r'$\mathbb{E}[||\Delta\theta||^2]$')
     axes[ai].set_title(f'd = {d}'); axes[ai].legend(fontsize=8); axes[ai].grid(True, alpha=0.3)
 plt.suptitle('Exp 1a: One-step drift variance vs N (flat landscape)', fontsize=13)
-plt.tight_layout(); fig.savefig(FIGS/'exp1a_drift_vs_N.png', dpi=150, bbox_inches='tight'); plt.close(fig)
+plt.tight_layout()
+save_fig(fig, 'exp1a_drift_vs_N')
 print("  → saved exp1a_drift_vs_N.png", flush=True)
 
-# Ratio heatmap
+# Ratio heatmap — seaborn annotated
+pivot = df_1a.pivot(index='d', columns='N', values='ratio')
 fig, ax = plt.subplots(figsize=(8, 5))
-ratio_grid = df_1a.pivot(index='d', columns='N', values='ratio').values
-im = ax.imshow(ratio_grid, aspect='auto', cmap='RdBu', vmin=0.9, vmax=1.1)
-ax.set_xticks(range(len(N_VALS))); ax.set_xticklabels(N_VALS)
-ax.set_yticks(range(len(D_VALS))); ax.set_yticklabels(D_VALS)
+sns.heatmap(pivot, annot=True, fmt='.3f', cmap='RdBu_r',
+            vmin=0.9, vmax=1.1, linewidths=0.5,
+            annot_kws={'size': 9}, ax=ax,
+            cbar_kws={'label': 'emp / theory'})
 ax.set_xlabel('N'); ax.set_ylabel('d')
 ax.set_title('Exp 1a: Ratio emp / theory  (should be ≈ 1.0)')
-plt.colorbar(im, ax=ax)
-plt.tight_layout(); fig.savefig(FIGS/'exp1a_ratio_heatmap.png', dpi=150, bbox_inches='tight'); plt.close(fig)
-print("  → saved exp1a_ratio_heatmap.png", flush=True)
+plt.tight_layout()
+save_fig(fig, 'exp1a_ratio_heatmap')
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -155,7 +168,8 @@ axes[1].axhline(1.0, color='k', ls='--', lw=1.5)
 axes[1].set_ylim([0.85, 1.15]); axes[1].set_xlabel('σ'); axes[1].set_ylabel('emp / theory')
 axes[1].set_title('Ratio (should be ≈ 1)'); axes[1].grid(True, alpha=0.3)
 plt.suptitle('Exp 1b: σ scaling of per-step drift', fontsize=13)
-plt.tight_layout(); fig.savefig(FIGS/'exp1b_sigma_scaling.png', dpi=150, bbox_inches='tight'); plt.close(fig)
+plt.tight_layout()
+save_fig(fig, 'exp1b_sigma_scaling')
 print("  → saved exp1b_sigma_scaling.png", flush=True)
 
 
@@ -183,7 +197,7 @@ for d in D_MULTI:
         for t in range(1, T_STEPS + 1):
             eps = torch.randn(NREP, N, d, device=DEVICE)
             R   = torch.randn(NREP, N, device=DEVICE)
-            Z   = (R - R.mean(1, keepdim=True)) / (R.std(1, keepdim=True) + 1e-9)
+            Z   = (R - R.mean(1, keepdim=True)) / (R.std(1, keepdim=True, correction=0) + 1e-9)
             dth = (alpha / N) * (Z.unsqueeze(-1) * eps).sum(1)
             cum = cum + dth
             if t % 20 == 0 or t == T_STEPS:
@@ -209,7 +223,8 @@ for ai, d in enumerate(D_MULTI):
     axes[ai].set_xlabel('Step T'); axes[ai].set_ylabel(r'$\mathbb{E}[||\theta_T - \theta_0||^2]$')
     axes[ai].set_title(f'd = {d}'); axes[ai].legend(fontsize=7); axes[ai].grid(True, alpha=0.3)
 plt.suptitle(f'Exp 1c: Cumulative drift vs T  (σ={SIGMA_M}, random walk prediction)', fontsize=13)
-plt.tight_layout(); fig.savefig(FIGS/'exp1c_cumulative_drift.png', dpi=150, bbox_inches='tight'); plt.close(fig)
+plt.tight_layout()
+save_fig(fig, 'exp1c_cumulative_drift')
 print("  → saved exp1c_cumulative_drift.png", flush=True)
 
 

@@ -5,7 +5,7 @@ from pathlib import Path
 from datetime import date
 import pandas as pd
 
-STORE = Path("/n/holylfs06/LABS/kempner_fellow_binxuwang/Users/binxuwang/DL_Projects/EvolStrategyTheory_validation")
+STORE = Path("/n/holylfs06/LABS/kempner_fellow_binxuwang/Users/binxuwang/DL_Projects/EvolStrategyTheory_validation_ddof0_v2")
 DATA  = STORE / "data"
 FIGS  = STORE / "figures"
 

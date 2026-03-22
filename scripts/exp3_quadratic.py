@@ -21,11 +21,23 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import torch
 import numpy as np
+import seaborn as sns
 import matplotlib; matplotlib.use('Agg')
 import matplotlib.pyplot as plt
+matplotlib.rcParams['pdf.fonttype'] = 42   # TrueType → editable text in PDF
+matplotlib.rcParams['ps.fonttype']  = 42
+matplotlib.rcParams['font.family']  = 'sans-serif'
+
+
+def save_fig(fig, stem):
+    """Save figure as both PNG (150 dpi) and PDF (vector fonts)."""
+    fig.savefig(FIGS / f'{stem}.png', dpi=150, bbox_inches='tight')
+    fig.savefig(FIGS / f'{stem}.pdf', bbox_inches='tight')
+    plt.close(fig)
+    print(f"  → saved {stem}.png + .pdf", flush=True)
 import pandas as pd
 
-STORE = Path("/n/holylfs06/LABS/kempner_fellow_binxuwang/Users/binxuwang/DL_Projects/EvolStrategyTheory_validation")
+STORE = Path("/n/holylfs06/LABS/kempner_fellow_binxuwang/Users/binxuwang/DL_Projects/EvolStrategyTheory_validation_ddof0_v2")
 FIGS  = STORE / "figures"
 DATA  = STORE / "data"
 for p in [FIGS, DATA]: p.mkdir(parents=True, exist_ok=True)
@@ -108,7 +120,7 @@ def measure_quad_step(Rot, eigs, theta, theta_star, sigma, xi, N, nmc=2000):
         R   = -0.5 * (eigs * y * y).sum(-1)  # (b, N) quadratic rewards
         if xi > 0:
             R = R + xi * torch.randn(b, N, device=DEVICE)
-        Z   = (R - R.mean(1, keepdim=True)) / (R.std(1, keepdim=True) + 1e-9)
+        Z   = (R - R.mean(1, keepdim=True)) / (R.std(1, keepdim=True, correction=0) + 1e-9)
         dth = (alpha / N) * (Z.unsqueeze(-1) * eps).sum(1)  # (b, d)
         # accumulate for σ_R (use ALL rewards from all perturbations)
         R_flat = R.reshape(-1)
@@ -176,7 +188,8 @@ axes[2].axhline(1.0, color='k', ls='--', lw=1.5)
 axes[2].set_xlabel('ξ'); axes[2].set_ylabel('σ_R emp / σ_R theory')
 axes[2].set_title('Ratio σ_R emp/theory (≈ 1)'); axes[2].legend(fontsize=8); axes[2].grid(True, alpha=0.3)
 plt.suptitle('Exp 3a: σ_R and mean update — Prop 3 validation', fontsize=13)
-plt.tight_layout(); fig.savefig(FIGS/'exp3a_sigmaR.png', dpi=150, bbox_inches='tight'); plt.close(fig)
+plt.tight_layout()
+save_fig(fig, 'exp3a_sigmaR')
 print("  → saved exp3a_sigmaR.png", flush=True)
 
 
@@ -217,7 +230,7 @@ for d in D_MS_VALS:
                 y    = dx @ Rot.T
                 R    = -0.5 * (eigs * y * y).sum(-1)   # (NREP, N)
                 if xi > 0: R = R + xi * torch.randn(NREP_MS, N, device=DEVICE)
-                Z    = (R - R.mean(1, keepdim=True)) / (R.std(1, keepdim=True) + 1e-9)
+                Z    = (R - R.mean(1, keepdim=True)) / (R.std(1, keepdim=True, correction=0) + 1e-9)
                 dth  = (alpha / N) * (Z.unsqueeze(-1) * eps).sum(1)
                 theta = theta + dth
 
@@ -247,7 +260,8 @@ for ri, d in enumerate(D_MS_VALS):
         ax.set_xlabel('Step T'); ax.set_ylabel('||θ - θ*||')
         ax.set_title(f'd={d}, N={N}'); ax.legend(fontsize=7); ax.grid(True, alpha=0.3)
 plt.suptitle('Exp 3c: Multi-step convergence on quadratic landscape', fontsize=13)
-plt.tight_layout(); fig.savefig(FIGS/'exp3c_multistep_quad.png', dpi=150, bbox_inches='tight'); plt.close(fig)
+plt.tight_layout()
+save_fig(fig, 'exp3c_multistep_quad')
 print("  → saved exp3c_multistep_quad.png", flush=True)
 
 
@@ -276,7 +290,7 @@ for d in D_SCALE:
         y    = dx @ Rot.T
         R    = -0.5 * (eigs * y * y).sum(-1)
         R    = R + XI_D * torch.randn(NREP_D, N_D_FIXED, device=DEVICE)
-        Z    = (R - R.mean(1, keepdim=True)) / (R.std(1, keepdim=True) + 1e-9)
+        Z    = (R - R.mean(1, keepdim=True)) / (R.std(1, keepdim=True, correction=0) + 1e-9)
         dth  = (alpha / N_D_FIXED) * (Z.unsqueeze(-1) * eps).sum(1)
         theta = theta + dth
         if t in [1, 10, 30, 50, 100, T_D]:
@@ -316,7 +330,8 @@ axes[2].set_title('Initial eff. step size vs d'); axes[2].legend(); axes[2].grid
 axes[0].set_xlabel('Step T'); axes[0].set_ylabel('||θ - θ*||')
 axes[0].set_title(f'Convergence vs d (N={N_D_FIXED}, k={K_D})'); axes[0].legend(fontsize=7); axes[0].grid(True, alpha=0.3)
 plt.suptitle('Exp 3d: Convergence rate scaling with dimensionality d', fontsize=13)
-plt.tight_layout(); fig.savefig(FIGS/'exp3d_d_scaling.png', dpi=150, bbox_inches='tight'); plt.close(fig)
+plt.tight_layout()
+save_fig(fig, 'exp3d_d_scaling')
 print("  → saved exp3d_d_scaling.png", flush=True)
 
 
@@ -345,7 +360,7 @@ for N in N_SCALE:
         y    = dx @ Rot_e.T
         R    = -0.5 * (eigs_e * y * y).sum(-1)
         R    = R + XI_3E * torch.randn(NREP_3E, N, device=DEVICE)
-        Z    = (R - R.mean(1, keepdim=True)) / (R.std(1, keepdim=True) + 1e-9)
+        Z    = (R - R.mean(1, keepdim=True)) / (R.std(1, keepdim=True, correction=0) + 1e-9)
         dth  = (alpha / N) * (Z.unsqueeze(-1) * eps).sum(1)
         theta = theta + dth
         if t % 30 == 0 or t == T_3E:
@@ -372,7 +387,8 @@ axes[1].loglog(final_e.N, final_e.dist, 'o-', ms=8, lw=2, color='darkgreen', lab
 axes[1].set_xlabel('N'); axes[1].set_ylabel(f'||θ_{T_3E} - θ*||')
 axes[1].set_title(f'Final distance vs N (T={T_3E})'); axes[1].legend(); axes[1].grid(True, alpha=0.3)
 plt.suptitle(f'Exp 3e: Convergence vs population size N (d={D_3E})', fontsize=13)
-plt.tight_layout(); fig.savefig(FIGS/'exp3e_N_scaling.png', dpi=150, bbox_inches='tight'); plt.close(fig)
+plt.tight_layout()
+save_fig(fig, 'exp3e_N_scaling')
 print("  → saved exp3e_N_scaling.png", flush=True)
 
 

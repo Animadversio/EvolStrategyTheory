@@ -21,11 +21,23 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import torch
 import numpy as np
+import seaborn as sns
 import matplotlib; matplotlib.use('Agg')
 import matplotlib.pyplot as plt
+matplotlib.rcParams['pdf.fonttype'] = 42   # TrueType → editable text in PDF
+matplotlib.rcParams['ps.fonttype']  = 42
+matplotlib.rcParams['font.family']  = 'sans-serif'
+
+
+def save_fig(fig, stem):
+    """Save figure as both PNG (150 dpi) and PDF (vector fonts)."""
+    fig.savefig(FIGS / f'{stem}.png', dpi=150, bbox_inches='tight')
+    fig.savefig(FIGS / f'{stem}.pdf', bbox_inches='tight')
+    plt.close(fig)
+    print(f"  → saved {stem}.png + .pdf", flush=True)
 import pandas as pd
 
-STORE = Path("/n/holylfs06/LABS/kempner_fellow_binxuwang/Users/binxuwang/DL_Projects/EvolStrategyTheory_validation")
+STORE = Path("/n/holylfs06/LABS/kempner_fellow_binxuwang/Users/binxuwang/DL_Projects/EvolStrategyTheory_validation_ddof0_v2")
 FIGS  = STORE / "figures"
 DATA  = STORE / "data"
 for p in [FIGS, DATA]: p.mkdir(parents=True, exist_ok=True)
@@ -85,7 +97,7 @@ def measure_linear(sigma, d, N, xi, vnorm, nmc=2000):
         R   = -sigma * (eps @ v)                              # (b, N)
         if xi > 0:
             R = R + xi * torch.randn(b, N, device=DEVICE)
-        Z   = (R - R.mean(1, keepdim=True)) / (R.std(1, keepdim=True) + 1e-9)
+        Z   = (R - R.mean(1, keepdim=True)) / (R.std(1, keepdim=True, correction=0) + 1e-9)
         dth = (alpha / N) * (Z.unsqueeze(-1) * eps).sum(1)   # (b, d)
 
         proj    = dth @ v_hat                                  # (b,)  parallel component scalar
@@ -144,7 +156,8 @@ axes[1].set_title('Prop 2: ρ vs SNR  (solid=emp, dash=theory)'); axes[1].legend
 axes[2].set_xlabel('ξ'); axes[2].set_ylabel('Mean cosine(Δθ, -∇)')
 axes[2].set_title('Alignment with gradient'); axes[2].legend(fontsize=8); axes[2].grid(True, alpha=0.3)
 plt.suptitle('Exp 2a: On-manifold fraction ρ vs reward noise', fontsize=13)
-plt.tight_layout(); fig.savefig(FIGS/'exp2a_rho_vs_xi.png', dpi=150, bbox_inches='tight'); plt.close(fig)
+plt.tight_layout()
+save_fig(fig, 'exp2a_rho_vs_xi')
 print("  → saved exp2a_rho_vs_xi.png", flush=True)
 
 
@@ -186,7 +199,8 @@ axes[1].axhline(1.0, color='k', ls='--', lw=1.5)
 axes[1].set_xlabel('N'); axes[1].set_ylabel('ρ emp / ρ theory')
 axes[1].set_title('Ratio (should be ≈ 1)'); axes[1].legend(fontsize=8); axes[1].grid(True, alpha=0.3)
 plt.suptitle('Exp 2b: On-manifold fraction ρ vs population size N', fontsize=13)
-plt.tight_layout(); fig.savefig(FIGS/'exp2b_rho_vs_N.png', dpi=150, bbox_inches='tight'); plt.close(fig)
+plt.tight_layout()
+save_fig(fig, 'exp2b_rho_vs_N')
 print("  → saved exp2b_rho_vs_N.png", flush=True)
 
 
@@ -255,7 +269,8 @@ axes[2].set_xlabel('d'); axes[2].set_ylabel('ρ')
 axes[2].set_title(f'ρ vs d for ξ values (N={N_plot})'); axes[2].legend(fontsize=8); axes[2].grid(True, alpha=0.3)
 
 plt.suptitle('Exp 2c: Curse of dimensionality — ρ falls as d grows', fontsize=13)
-plt.tight_layout(); fig.savefig(FIGS/'exp2c_rho_vs_d.png', dpi=150, bbox_inches='tight'); plt.close(fig)
+plt.tight_layout()
+save_fig(fig, 'exp2c_rho_vs_d')
 print("  → saved exp2c_rho_vs_d.png", flush=True)
 
 
@@ -285,7 +300,7 @@ for N in N_MS_VALS:
             perturbed = theta.unsqueeze(1) + SIGMA * eps  # (NREP, N, d)
             R = -(perturbed @ v)                           # (NREP, N)
             if xi > 0: R = R + xi * torch.randn(NREP_MS, N, device=DEVICE)
-            Z   = (R - R.mean(1, keepdim=True)) / (R.std(1, keepdim=True) + 1e-9)
+            Z   = (R - R.mean(1, keepdim=True)) / (R.std(1, keepdim=True, correction=0) + 1e-9)
             dth = (alpha / N) * (Z.unsqueeze(-1) * eps).sum(1)  # (NREP, d)
             theta = theta + dth
             if t % 30 == 0 or t == T_MS:
@@ -308,7 +323,8 @@ for ni, N in enumerate(N_MS_VALS):
     ax.set_xlabel('Step T'); ax.set_ylabel('Mean ||θ_t - θ*||')
     ax.set_title(f'N={N}: Convergence vs noise ξ'); ax.legend(fontsize=8); ax.grid(True, alpha=0.3)
 plt.suptitle(f'Exp 2e: Multi-step convergence on linear landscape (d={D_MS})', fontsize=13)
-plt.tight_layout(); fig.savefig(FIGS/'exp2e_multistep_linear.png', dpi=150, bbox_inches='tight'); plt.close(fig)
+plt.tight_layout()
+save_fig(fig, 'exp2e_multistep_linear')
 print("  → saved exp2e_multistep_linear.png", flush=True)
 
 
