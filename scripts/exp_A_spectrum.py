@@ -1,5 +1,27 @@
 #!/usr/bin/env python3
-"""Exp A: Deep spectrum analysis of ZScoreES on quadratic landscapes."""
+"""Exp A: Deep spectrum analysis of ZScoreES on quadratic landscapes.
+
+Validates how the eigenvalue spectrum of the Hessian Q affects σ_R and
+the effective gradient step γ = ασ/σ_R (Prop 3, theory.tex).
+
+Sub-experiments:
+  A1: σ_R vs k/d ratio for three spectrum types (uniform, power-law, range)
+      across d ∈ {100, 500, 1000}.
+  A2: Power-law exponent β sweep — how spectrum steepness affects σ_R and γ.
+  A3: 2D heatmap σ_R(k, β) for power-law spectra at d=1000, ξ=0.1.
+
+Key finding: steeper power-law (larger β) keeps σ_R ≈ const regardless of k;
+uniform spectrum blows up σ_R linearly with k.
+
+Hardcoded settings: σ=0.1, α=σ/2, N=50.
+
+Outputs:
+  ~/DL_Projects/EvolStrategyTheory_validation/figures/expA{1-3}_*.png
+
+Usage:
+  python scripts/exp_A_spectrum.py
+  # (no CLI args — edit constants at top of file to change settings)
+"""
 import sys, os, datetime
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))

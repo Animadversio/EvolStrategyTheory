@@ -6,24 +6,76 @@ Theory (from theory.tex §Multi-step analysis):
   E[θ_t] ≈ (I - γ₀ Q)^t θ_0          (frozen-σ_R approximation, γ₀ = γ at θ_0)
   Cov[η_t] = (α²/N) I_d + (α²/N σ_R²)(σ² vv^T + 2σ⁴ Q²)
 
-Sub-experiments (all share the same simulation block):
-  D1: Mean trajectory vs frozen-σ_R theory — per axis E[θ_t] vs predicted
-  D2: Per-eigenmode decay — log‖proj(θ_t, u_i)‖ vs t, slope = log(1 - γλ_i)
-  D3: Noise floor — stationary ‖θ‖² as function of (σ, N, λ_min)
-  D4: ES vs GD — convergence speed in steps and function evaluations
+Sub-experiments (all share the same simulation block — simulate once, analyse many ways):
+  D1: Mean trajectory vs frozen-σ_R theory — per eigenmode E[θ_t] vs (I-γ₀Q)^t θ_0
+  D2: Per-eigenmode decay rate — empirical log-slope vs theory log(1-γ₀λ_i)
+  D3: Noise floor / stationary distribution — Var[c_i(∞)] vs OU theory
+  D4: ES vs GD — convergence vs steps and vs total function evaluations
 
-Usage (local):
-  python exp_D_multistep_gd_comparison.py
+Outputs (all paths under --out_dir, default ~/DL_Projects/EvolStrategyTheory_validation/):
+  data/expD_simulation[_tag].pkl   — raw traj_coords (n_trials × T+1 × d)
+  data/expD1_mean_trajectory.pkl
+  data/expD2_eigenmode_decay.pkl
+  data/expD3_noise_floor.pkl
+  data/expD4_es_vs_gd.pkl
+  figures/expD{1-4}_*.png
 
-Usage (cluster, sbatch):
-  python exp_D_multistep_gd_comparison.py \
-      --d 1000 --k 20 --N 50 --sigma 0.1 --T 500 --n_trials 200 \
-      --spectrum powerlaw --beta 1.0 --xi 0.0 \
-      --lam_max 5.0 --lam_min 0.1 \
-      --out_dir /path/to/output
+─────────────────────────────────────────────────────
+Usage
+─────────────────────────────────────────────────────
 
-All numerical results are saved as .pkl in DATA/; figures in FIGS/.
-Analysis functions load from pkl so re-plotting is free.
+# Quick local test (CPU/GPU auto-detected):
+  python scripts/exp_D_multistep_gd_comparison.py
+
+# Full local run:
+  python scripts/exp_D_multistep_gd_comparison.py \\
+      --d 1000 --k 20 --N 50 --sigma 0.1 --xi 0.0 \\
+      --T 500 --n_trials 200 --theta0_norm 10.0 \\
+      --spectrum powerlaw --beta 1.0 \\
+      --lam_max 5.0 --lam_min 0.1 --ddof 0
+
+# Run only specific sub-experiments:
+  python ... --exps D1,D3
+
+# Custom output dir + tag (useful for parameter sweeps):
+  python ... --out_dir /path/to/output --tag sigma05
+
+# On cluster via sbatch (see scripts/sbatch/run_exp_D.sh):
+  sbatch scripts/sbatch/run_exp_D.sh            # single run
+  sbatch --array=0-4 scripts/sbatch/run_exp_D.sh  # sigma sweep
+
+─────────────────────────────────────────────────────
+Arguments
+─────────────────────────────────────────────────────
+
+Landscape:
+  --d          INT    Parameter space dimension               [default: 500]
+  --k          INT    Number of curved eigenmodes             [default: 20]
+  --lam_max    FLOAT  Largest eigenvalue                      [default: 5.0]
+  --lam_min    FLOAT  Smallest active eigenvalue              [default: 0.5]
+  --flat       FLOAT  Eigenvalue for inactive dims            [default: 1e-4]
+  --spectrum   STR    uniform | powerlaw | range              [default: powerlaw]
+  --beta       FLOAT  Power-law exponent (spectrum=powerlaw)  [default: 1.0]
+
+ZScoreES:
+  --N          INT    Population size per step                [default: 50]
+  --sigma      FLOAT  Exploration std σ                       [default: 0.1]
+  --xi         FLOAT  Observation noise std ξ                 [default: 0.0]
+  --ddof       INT    Std denominator: 0=N (theory), 1=N-1   [default: 0]
+
+Simulation:
+  --T          INT    Number of ES steps per trial            [default: 400]
+  --n_trials   INT    Number of independent trajectories      [default: 200]
+  --theta0_norm FLOAT ‖θ_0‖ starting distance from θ*        [default: 10.0]
+  --seed       INT    Random seed                             [default: 42]
+
+GD (D4):
+  --gd_lr      FLOAT  GD learning rate (default: 2/(λ_min+λ_max))
+
+Output:
+  --out_dir    STR    Output directory                        [default: auto]
+  --tag        STR    Tag appended to all output filenames    [default: ""]
+  --exps       STR    Comma-separated sub-experiments to run  [default: D1,D2,D3,D4]
 """
 
 import argparse

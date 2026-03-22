@@ -1,5 +1,28 @@
 #!/usr/bin/env python3
-"""Exp B: SNR scaling for rho (Prop 2 deep dive) + multi-step trajectory analysis."""
+"""Exp B: SNR scaling for ρ (Prop 2 deep dive) + multi-step trajectory analysis.
+
+Deep validation of Proposition 2 (on-manifold fraction ρ) and multi-step
+convergence on quadratic landscapes from theory.tex.
+
+Sub-experiments:
+  B1: ρ heatmap over (d, ξ) — theory vs empirical across
+      d ∈ {50,100,500,1000,5000} and ξ ∈ {0,0.01,...,10}.
+  B2: Multi-step trajectory analysis — ‖θ_t - θ*‖, σ_R(t), ‖E[Δθ]‖
+      for varying obs noise ξ on a d=500 quadratic landscape.
+  B3: Required population N* for target ρ — analytic scaling N* ≈ ρd/(s(1-ρ)),
+      showing N* grows linearly with d.
+
+Key finding: ρ ≈ N·s/d; curse of dimensionality is severe; N* ∝ d.
+
+Hardcoded settings: σ=0.1, α=σ/2, N=50 (for B1/B2).
+
+Outputs:
+  ~/DL_Projects/EvolStrategyTheory_validation/figures/expB{1-3}_*.png
+
+Usage:
+  python scripts/exp_B_snr_multistep.py
+  # (no CLI args — edit constants at top of file to change settings)
+"""
 import sys, os, datetime
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))

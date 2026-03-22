@@ -1,11 +1,29 @@
 #!/usr/bin/env python3
-"""Exp C: Compare SeparableES (CMA-ES style), ZScoreES, SimpleES on rotated quadratic landscapes.
-Conditions:
-  C1. Well-conditioned landscape (κ=10), d=500, k=20
-  C2. Ill-conditioned landscape (κ=1000), d=500, k=20
-  C3. Varying dimensionality: d=100,500,1000 (fixed κ=100, k=20)
-  C4. Varying population N: N=10,30,100,300 (fixed d=500, κ=100)
-All use xi=0.1 obs noise. T=300 steps.
+"""Exp C: Compare ZScoreES, SeparableES (CMA-style), and SimpleES on rotated quadratic landscapes.
+
+Benchmarks three ES variants across conditioning, dimensionality, and
+population size to understand where ZScoreES's z-score normalization helps.
+
+Sub-experiments:
+  C1: Well-conditioned landscape (κ=10), d=500, k=20, T=300, ξ=0.1
+  C2: Ill-conditioned landscape (κ=1000), d=500, k=20, T=300, ξ=0.1
+      → SimpleES diverges catastrophically; ZScoreES is robust.
+  C3: Varying dimensionality d ∈ {100,500,1000}, κ=100, k=20, T=200, ξ=0.1
+      → Final distance ∝ √d; ZScoreES edge widens at high d.
+  C4: Varying population N ∈ {10,30,100,300} for ZScoreES, d=500, κ=100, T=200, ξ=0.1
+      → Diminishing returns beyond N ≈ 2k; N=30 sufficient here.
+
+Requires: core/optimizers.py (ZScoreES, SeparableES, SimpleES)
+          core/landscapes.py (RotatedQuadratic)
+
+Hardcoded settings: see conditions above.
+
+Outputs:
+  ~/DL_Projects/EvolStrategyTheory_validation/figures/expC{12,3,4}_*.png
+
+Usage:
+  python scripts/exp_C_optimizer_comparison.py
+  # (no CLI args — edit constants at top of file to change settings)
 """
 import sys, os, datetime
 from pathlib import Path
