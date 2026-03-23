@@ -1,0 +1,1207 @@
+%% LyX 2.4.1 created this file.  For more info, see https://www.lyx.org/.
+%% Do not edit unless you really know what you are doing.
+\documentclass[american]{article}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{geometry}
+\geometry{verbose,tmargin=1cm,bmargin=1cm,lmargin=1cm,rmargin=1cm}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{babel}
+
+% Required for tikzpicture and drawing features
+\usepackage{tikz}
+\usetikzlibrary{shapes,arrows,calc}
+
+\newtheorem{proposition}{Proposition}
+\newtheorem{remark}{Remark}
+\begin{document}
+
+
+% \begin{proposition}[ES as Isotropic Random Walk on Flat Landscapes]
+% On a flat reward landscape, the ES weight update $\Delta\theta$ follows an isotropic Gaussian distribution:
+% \begin{equation}
+% \Delta\theta \sim \mathcal{N}\!\left(0,\; \frac{\sigma^2}{4N}I_d\right)
+% \end{equation}
+% independent of the realized rewards $\{R_i\}$. Consequently, after $T$ steps the cumulative deviation satisfies:
+% \begin{equation}
+% \mathbb{E}\|\theta_T - \theta_0\|^2 = \frac{\sigma^2 T d}{4N}
+% \end{equation}
+% This exhibits diffusive scaling in both time $T$ and the parameter dimension $d$.
+% \end{proposition}
+
+% \begin{proposition}[Signal--Noise Decomposition on Linear Landscapes]
+% On a linear reward landscape $R(\theta) = -\mathbf{v}^\top\theta$ with observation noise $\sigma_\xi$,
+% the ES update decomposes into orthogonal signal and noise components:
+% \begin{align}
+% \mathbb{E}[P^{\parallel}\Delta\theta] &= -\frac{\sigma\alpha}{\sqrt{\sigma^2\|\mathbf{v}\|^2 + \sigma_\xi^2}}\,\mathbf{v}, 
+% &\mathrm{Var}[P^{\parallel}\Delta\theta] &= \frac{\alpha^2(2\sigma^2\|\mathbf{v}\|^2+\sigma_\xi^2)}{N(\sigma^2\|\mathbf{v}\|^2+\sigma_\xi^2)}P^{\parallel}\nonumber \\
+% \mathbb{E}[P^{\perp}\Delta\theta] &= 0, 
+% &\mathrm{Var}[P^{\perp}\Delta\theta] &= \frac{\alpha^2}{N}P^{\perp}
+% \end{align}
+% The signal-to-noise ratio of the on-manifold update scales as:
+% \begin{equation}
+% \mathrm{SNR} = \sqrt{N}\cdot\frac{\sigma\|\mathbf{v}\|}{\sqrt{2\sigma^2\|\mathbf{v}\|^2 + \sigma_\xi^2}}
+% \end{equation}
+% In the noise-free limit $\sigma_\xi\to 0$, $\mathrm{SNR}\to\sqrt{N/2}$, revealing an irreducible floor
+% set by the non-Gaussian ($\chi^2$) fluctuations of the on-manifold exploration. In the high-noise
+% limit $\sigma_\xi \gg \sigma\|\mathbf{v}\|$, the SNR degrades as $\sqrt{N}\,\sigma\|\mathbf{v}\|/\sigma_\xi$,
+% recovering the classical ES sample-complexity bound.
+% \end{proposition}
+
+
+
+\begin{proposition}[Evolution Strategy on a Flat Landscape]
+    Let $R(\theta) = \text{const}$, so all reward variation arises from
+    observation noise. Under the ES update
+    $\Delta\theta = \frac{\alpha}{N}\sum_{i=1}^N Z_i \epsilon_i$
+    with $\epsilon_i \sim \mathcal{N}(0, I_d)$ and z-scored rewards
+    $Z_i$, the weight update is a pure isotropic random walk:
+    \[
+        \Delta\theta \sim \mathcal{N}\!\left(0,\, \frac{\alpha^2}{N} I_d\right),
+        \qquad
+        \mathbb{E}\bigl[\|\Delta\theta\|^2\bigr] = \frac{\alpha^2 d}{N}.
+    \]
+    After $T$ independent steps, the cumulative deviation satisfies
+    \[
+        \mathbb{E}\bigl[\|\theta_T - \theta_0\|^2\bigr]
+        = \frac{\alpha^2 T d}{N}
+        = \frac{\sigma^2 T d}{4N},
+    \]
+    where the last equality substitutes $\alpha = \sigma/2$.
+    In particular, the expected drift grows linearly in $T$ and $d$,
+    and shrinks inversely in the batch size $N$.
+    \end{proposition}
+    
+    \begin{proposition}[Evolution Strategy on a Linear Landscape]
+    Let $R(\theta) = -\mathbf{v}^\top\theta$ with observation noise
+    $\sigma_\xi$. Define the signal-to-noise ratio
+    $s := \frac{\sigma^2\|\mathbf{v}\|^2}{\sigma^2\|\mathbf{v}\|^2 + \sigma_\xi^2} \in [0,1]$.
+    The mean of the ES update is purely aligned with the gradient direction:
+    \[
+        \mathbb{E}[P^{\parallel}\Delta\theta]
+        = \frac{-\sigma\alpha\,\mathbf{v}}{\sqrt{\sigma^2\|\mathbf{v}\|^2+\sigma_\xi^2}},
+        \qquad
+        \mathbb{E}[P^{\perp}\Delta\theta] = 0.
+    \]
+    The on- and off-manifold covariances are
+    \[
+        \operatorname{Cov}[P^{\parallel}\Delta\theta]
+        = \frac{\alpha^2(2\sigma^2\|\mathbf{v}\|^2 + \sigma_\xi^2)}{N(\sigma^2\|\mathbf{v}\|^2 + \sigma_\xi^2)}\,P^{\parallel},
+        \qquad
+        \operatorname{Cov}[P^{\perp}\Delta\theta]
+        = \frac{\alpha^2}{N}\,P^{\perp}.
+    \]
+    The off-manifold covariance is isotropic and independent of the signal,
+    whereas the on-manifold covariance is modulated by the SNR: in the
+    noiseless limit $\sigma_\xi \to 0$ it approaches $\frac{2\alpha^2}{N}P^{\parallel}$,
+    and in the noise-dominated limit $\sigma_\xi^2 \gg \sigma^2\|\mathbf{v}\|^2$
+    it recovers the flat-landscape value $\frac{\alpha^2}{N}P^{\parallel}$.
+    The on-manifold fraction of total squared displacement is
+    \[
+        \rho :=
+        \frac{\mathbb{E}\|P^{\parallel}\Delta\theta\|^2}
+                {\mathbb{E}\|\Delta\theta\|^2}
+        =
+        \frac{1 + (N+1)\,s}
+                {d + (N+1)\,s}.
+    \]
+    Hence: (i) without signal ($s=0$), $\rho = 1/d$, i.e.\ the update is
+    purely diffusive; (ii) in the high-SNR limit ($s\to 1$), $\rho \to
+    (N+2)/(d+N+1)$; (iii) $\rho$ increases monotonically in $s$ and $N$,
+    and decreases in $d$. Since $N \ll d$ in practice, on-manifold movement
+    per step is negligible relative to off-manifold diffusion.
+    \end{proposition}
+    
+    \begin{proposition}[Evolution Strategy on a Linear Landscape]
+        Let $R(\theta) = -\mathbf{v}^\top\theta$ with observation noise
+        $\sigma_\xi$, and define $\sigma_R^2 := \sigma^2\|\mathbf{v}\|^2 + \sigma_\xi^2$.
+        Since $\Delta\theta = P^{\parallel}\Delta\theta + P^{\perp}\Delta\theta$
+        and the two components are independent, the mean and covariance of the
+        full ES update follow by direct combination:
+        \[
+            \mathbb{E}[\Delta\theta]
+            = \frac{-\sigma\alpha}{\sigma_R}\,\mathbf{v},
+        \]
+        \[
+            \operatorname{Cov}[\Delta\theta]
+            = \frac{\alpha^2}{N}\,I_d
+            \;+\;
+            \frac{\alpha^2\sigma^2}{N\sigma_R^2}\,\mathbf{v}\mathbf{v}^\top.
+        \]
+        The covariance decomposes into two interpretable parts: (i) an
+        \emph{isotropic diffusion} term $\frac{\alpha^2}{N}I_d$, identical to
+        the flat-landscape result and present regardless of any signal; and
+        (ii) a \emph{rank-1 signal-aligned boost} $\frac{\alpha^2\sigma^2}{N\sigma_R^2}\mathbf{v}\mathbf{v}^\top$,
+        which inflates variance specifically along the gradient direction $\mathbf{v}$
+        in proportion to the SNR $s = \sigma^2\|\mathbf{v}\|^2/\sigma_R^2$.
+        Consequently, the gradient direction is the \emph{noisiest} direction
+        in parameter space, with variance $\frac{\alpha^2}{N}(1+s)$ along
+        $\mathbf{v}/\|\mathbf{v}\|$, versus $\frac{\alpha^2}{N}$ in all orthogonal
+        directions. The on-manifold fraction of total squared displacement is
+        \[
+            \rho :=
+            \frac{\mathbb{E}\|P^{\parallel}\Delta\theta\|^2}
+                 {\mathbb{E}\|\Delta\theta\|^2}
+            =
+            \frac{1 + (N+1)\,s}
+                 {d + (N+1)\,s},
+        \]
+        which increases monotonically in $s$ and $N$, and decreases in $d$.
+        Since $N \ll d$ in practice, on-manifold movement per step is negligible
+        relative to off-manifold diffusion.
+        \end{proposition}
+
+
+    \begin{proposition}[Evolution Strategy on a Linear Landscape]
+    Let $R(\theta) = -\mathbf{v}^\top\theta$ with observation noise
+    $\sigma_\xi$. Define the signal-to-noise ratio
+    $s := \frac{\sigma^2\|\mathbf{v}\|^2}{\sigma^2\|\mathbf{v}\|^2 + \sigma_\xi^2} \in [0,1]$.
+    The on- and off-manifold components of the update decouple:
+    \[
+        \mathbb{E}[P^{\parallel}\Delta\theta]
+        = \frac{-\sigma\alpha\,\mathbf{v}}{\sqrt{\sigma^2\|\mathbf{v}\|^2+\sigma_\xi^2}},
+        \qquad
+        \mathbb{E}[P^{\perp}\Delta\theta] = 0,
+    \]
+    so the \emph{mean} update is purely aligned with the gradient direction
+    $\mathbf{v}$. The on-manifold fraction of total squared displacement is
+    \[
+        \rho :=
+        \frac{\mathbb{E}\|P^{\parallel}\Delta\theta\|^2}
+             {\mathbb{E}\|\Delta\theta\|^2}
+        =
+        \frac{1 + (N+1)\,s}
+             {d + (N+1)\,s}.
+    \]
+    Hence: (i) without signal ($s=0$), $\rho = 1/d$, i.e.\ the update is
+    purely diffusive; (ii) in the high-SNR limit ($s\to 1$), $\rho \to
+    (N+2)/(d+N+1)$; (iii) $\rho$ increases monotonically in $s$ and $N$,
+    and decreases in $d$. Since $N \ll d$ in practice, on-manifold movement
+    per step is negligible relative to off-manifold diffusion.
+    \end{proposition}
+    
+    
+    \begin{proposition}[Evolution Strategy on a Quadratic Landscape]
+    Let $R(\theta) = -\frac{1}{2}\theta^\top Q\theta$ with $Q \succeq 0$,
+    current iterate $\theta_0$, and $\mathbf{v} := Q\theta_0$
+    (the negative gradient). Define
+    \begin{equation}
+        \sigma_R^2 := \sigma^2\|\mathbf{v}\|^2
+                    + \tfrac{\sigma^4}{2}\operatorname{Tr}[Q^2]
+                    + \sigma_\xi^2
+        \label{eq:es-quadratic-sigmaR}
+    \end{equation}
+    The mean and covariance of the ES parameter update are
+    \[
+        \mathbb{E}[\Delta\theta]
+        = \frac{-\alpha\sigma\,\mathbf{v}}{\sigma_R},
+    \]
+    \[
+        \operatorname{Cov}[\Delta\theta]
+        = \frac{\alpha^2}{N\sigma_R^2}
+          \Bigl(
+            \sigma^2\,\mathbf{v}\mathbf{v}^\top
+            + 2\sigma^4 Q^2
+            + \sigma_R^2\,I_d
+          \Bigr).
+    \]
+    Relative to the linear case, the quadratic term $Q$ introduces two
+    additional contributions: (i) a curvature-dependent inflation of
+    $\sigma_R^2$ through $\operatorname{Tr}[Q^2]$, which \emph{attenuates}
+    the mean gradient step; and (ii) an anisotropic noise term
+    $2\sigma^4 Q^2/\sigma_R^2$ in the covariance, which directs
+    stochastic fluctuations along the principal curvature directions
+    of $Q$.
+\end{proposition}
+
+\begin{proposition}[Dynamics of ES on Quadratic Landscape]
+  Consider the simplified evolution
+  \[
+  \theta_{t+1} = H\theta_t + \eta_t, \qquad \eta_t \sim \mathcal{N}\!\left(0,\tfrac{\alpha^2}{N}I_d\right),
+  \]
+  where $H = I - \frac{\alpha\sigma}{\sigma_R}Q = \sum_k \left(1 - \frac{\alpha\sigma}{\sigma_R}\lambda_k\right)\mathbf{u}_k\mathbf{u}_k^\top$. 
+  \footnote{$\sigma_R$ here is a fixed constant, not changing across iterations as in the full ES update in Equation \ref{eq:es-quadratic-sigmaR}.}
+  Let $\gamma_k := 1 - \frac{\alpha\sigma}{\sigma_R}\lambda_k$ denote the contraction factor along eigendirection $\mathbf{u}_k$. Then the projected mean and variance evolve as
+  \[
+  \mathbb{E}[\mathbf{u}_k^\top\theta_t] = \gamma_k^t\,\mathbf{u}_k^\top\theta_0,
+  \]
+  \[
+  \mathrm{Var}[\mathbf{u}_k^\top\theta_t] = \frac{\alpha^2}{N}\cdot\begin{cases} \dfrac{1 - \gamma_k^{2t}}{1-\gamma_k^2}, & \gamma_k^2 \neq 1, \\[6pt] t, & \gamma_k^2 = 1. \end{cases}
+  \]
+  The process converges in mean and variance along direction $\mathbf{u}_k$ if and only if $|\gamma_k| < 1$, i.e.,
+  \[
+  0 < \lambda_k < \frac{2\sigma_R}{\alpha\sigma}.
+  \]
+  In this regime, the asymptotic variance is
+  \[
+  \lim_{t\to\infty}\mathrm{Var}[\mathbf{u}_k^\top\theta_t] = \frac{\alpha^2}{N}\cdot\frac{1}{1-\gamma_k^2},
+  \]
+  and the convergence timescale is $\tau_k = -\log 2\,/\log\gamma_k^2$.
+  \end{proposition}
+  
+  \begin{remark}[Stability conditions]
+  The three failure modes each correspond to a violation of $|\gamma_k|<1$. Flat directions ($\lambda_k = 0$) satisfy $\gamma_k = 1$, so both the mean and variance grow as a pure random walk: the optimizer drifts diffusively and never localizes. Concave directions ($\lambda_k < 0$) give $\gamma_k > 1$, causing exponential divergence of both mean and variance --- the landscape actively repels the iterates. Overly sharp convex directions ($\lambda_k \geq 2\sigma_R/\alpha\sigma$) give $|\gamma_k| \geq 1$ for a different reason: the ES step overshoots, analogous to gradient descent with too large a learning rate. Note that because the ES learning rate is $\alpha = \sigma/2$, this threshold becomes $\lambda_k = 4\sigma_R/\sigma^2$.
+  \end{remark}
+  
+  \begin{remark}[Optimal curvature]
+  Within the stable regime, the convergence speed and asymptotic variance are jointly controlled by $\gamma_k^2$. Directions with $\lambda_k \approx \sigma_R/\alpha\sigma$ achieve $\gamma_k \approx 0$, which simultaneously minimizes the convergence timescale ($\tau_k \to 1$ iteration) and the asymptotic variance ($\approx \alpha^2/N$). Directions near the stability boundary $\lambda_k \to 0^+$ or $\lambda_k \to (2\sigma_R/\alpha\sigma)^-$ suffer slow convergence and inflated variance. Thus the landscape curvature relative to the ratio $\sigma_R/\alpha\sigma$ plays the role of an effective condition number for the ES dynamics.
+  \end{remark}
+  
+  \begin{remark}[Role of noise scale]
+  The asymptotic variance $\frac{\alpha^2}{N(1-\gamma_k^2)}$ reveals the expected tension between exploration and precision: increasing the population size $N$ suppresses variance linearly, while the landscape geometry (through $\gamma_k^2$) sets a floor on the minimum achievable uncertainty. In well-conditioned directions, $1 - \gamma_k^2 \approx 2\frac{\alpha\sigma}{\sigma_R}\lambda_k$, so the asymptotic variance scales as $\frac{\alpha\sigma_R}{2N\sigma\lambda_k}$, inversely proportional to both curvature and the signal-to-noise ratio $\sigma/\sigma_R$.
+  \end{remark}
+    
+
+\section{Theory of Evolutionary Strategy}
+
+
+\subsection{Simplified ES}
+
+Consider the ES algorithm actually used in LLM training (cite).
+
+\subsubsection{Setup}
+
+\begin{equation}
+\theta_{t+1} = \theta_{t} + \alpha \cdot \frac{1}{N} \sum_{i=1}^{N} Z_{i}\epsilon_{i}
+\end{equation}
+
+where $\epsilon_{i}\sim\mathcal{N}(0,I_{d})$,
+
+$Z_{i} = \frac{R_{i}-\mu_{R}}{\sigma_{R}}$,
+
+$R_{i} = R(\theta_{t}+\sigma\epsilon_{i})$,
+
+$\alpha = \frac{1}{2}\sigma$,
+
+$N \approx 30$
+
+The weight update is then
+\begin{equation}
+\Delta\theta = \alpha \cdot \frac{1}{N} \sum_{i=1}^{N} Z_{i}\epsilon_{i}
+\end{equation}
+
+\subsubsection{Flat Landscape}
+
+The key assumption is that $Z_{i}$ is independent of $\epsilon_{i}$,
+i.e., $Z_{i}\perp\epsilon_{i}$. Then we can write down the distribution
+of $\Delta\theta$ conditioned on a set of $Z_{i}$:
+\begin{equation}
+\mathrm{Var}[\Delta\theta|Z_{i}] = \left(\frac{\alpha^{2}}{N^{2}}\sum_{i=1}^{N}Z_{i}^{2}\right)I_{d}
+\end{equation}
+
+The distribution is an isotropic Gaussian:
+\begin{equation}
+\Delta\theta|Z_{i} \sim \mathcal{N}\left(0, \left(\frac{\alpha^{2}}{N^{2}}\sum_{i=1}^{N}Z_{i}^{2}\right)I_{d}\right)
+\end{equation}
+
+Note that $Z_{i} = \frac{R_{i} - \mu_{R}}{\sigma_{R}}$. By definition,\footnote{Note that this constraint depends on the implementation of the z-score
+$Z_{i} = \frac{R_{i}-\mu_{R}}{\sigma_{R}}$. In our code, we compute
+the standard deviation as $\sigma_{R}^{2} = \frac{1}{N}\sum_{i=1}^{N}(R_{i}-\mu_{R})^{2}$.
+In the unbiased variance estimator (denominator $N-1$), the identity reads $\sum_{i=1}^{N}Z_{i}^{2} = N-1$.}
+\begin{align}
+\sum_{i=1}^{N}Z_{i}^{2}
+&= \sum_{i=1}^{N} \left(\frac{R_{i}-\mu_{R}}{\sigma_{R}}\right)^{2} \notag\\
+&= \frac{1}{\sigma_{R}^{2}}\sum_{i=1}^{N}(R_{i} - \mu_{R})^{2} \notag\\
+&= N\quad\text{(or $N-1$ with unbiased estimator)}
+\end{align}
+
+Thus the general scaling will be:
+\begin{align}
+\mathrm{Var}[\Delta\theta|Z_{i}] &= \frac{\alpha^{2}}{N^{2}}N I_{d} \notag\\
+&= \frac{\alpha^{2}}{N}I_{d}
+\end{align}
+
+Note that this is independent of the choice of $Z_{i}$; thus, marginalizing
+over $Z_{i}$ gives the same distribution:
+\begin{equation}
+\Delta\theta\sim\mathcal{N}\left(0, \frac{\alpha^{2}}{N}I_{d}\right)
+\end{equation}
+\begin{equation}
+\mathrm{Var}[\Delta\theta] = \frac{\alpha^{2}}{N}I_{d}
+\end{equation}
+
+On a flat landscape, the $\Delta\theta$ are independent across
+steps, so after $T$ steps the combined weight change is:
+\begin{equation}
+\bar{\Delta\theta_{T}} = \theta_{T} - \theta_{0} = \sum_{t=1}^{T} \Delta\theta_{t}
+\end{equation}
+
+Thus the combined variance is
+\begin{equation}
+\mathrm{Var}[\bar{\Delta\theta_{T}}] = \frac{\alpha^{2}T}{N}I_{d}
+\end{equation}
+
+Therefore, the expected squared norm of weight deviation is
+\begin{equation}
+\mathbb{E}\|\bar{\Delta\theta_{T}}\|^{2} = \frac{\alpha^{2}Td}{N}
+\end{equation}
+
+Finally, substituting $\alpha = \frac{\sigma}{2}$ recovers
+\begin{equation}
+\frac{\alpha^{2}}{N} = \frac{\sigma^{2}}{4N}
+\end{equation}
+and 
+\begin{equation}
+\mathbb{E}\|\bar{\Delta\theta_{T}}\|^{2} = \frac{\sigma^{2}Td}{4N}
+\end{equation}
+
+
+\subsubsection{Linear Landscape}
+
+Consider a linear landscape with i.i.d.~observational noise $\xi\sim\mathcal{N}(0,1)$,
+where we assume it is independent of the exploration vector, i.e., $\xi\perp\epsilon$.
+
+\begin{equation}
+R(\theta) = -\mathbf{v}^{\top}\theta
+\end{equation}
+
+The observed reward at each location is
+\begin{align}
+R_{i} &= R(\theta_{0}+\sigma\epsilon_{i})+\sigma_{\xi}\xi_{i} \notag\\
+&= -\mathbf{v}^{\top}(\theta_{0}+\sigma\epsilon_{i})+\sigma_{\xi}\xi_{i} \notag\\
+&\equiv -\sigma\mathbf{v}^{\top}\epsilon_{i} + \sigma_{\xi}\xi_{i}
+\end{align}
+
+Decompose the exploration into on-manifold and off-manifold components:
+\begin{equation}
+\epsilon_{i} = \epsilon_{i}^{\perp} + \epsilon_{i}^{\parallel}
+\end{equation}
+where $\epsilon_{i}^{\perp} := P^{\perp}\epsilon_{i}$, $\epsilon_{i}^{\parallel} := P^{\parallel}\epsilon_{i}$.
+
+\begin{align}
+P^{\perp} & := I - \frac{\mathbf{v}\mathbf{v}^{\top}}{\|\mathbf{v}\|^{2}} \\
+P^{\parallel} & := \frac{\mathbf{v}\mathbf{v}^{\top}}{\|\mathbf{v}\|^{2}}
+\end{align}
+
+Given isotropic Gaussian noise, each $\epsilon_{i}^{\perp}$ is distributed
+i.i.d.~as $\epsilon_{i}^{\perp}\sim\mathcal{N}(0, P^{\perp})$ and $\epsilon_{i}^{\parallel}\sim\mathcal{N}(0, P^{\parallel})$.
+The vectors $\epsilon_{i}^{\perp}$ and $\epsilon_{i}^{\parallel}$ are statistically
+independent, i.e., $\epsilon_{i}^{\perp}\perp\epsilon_{i}^{\parallel}$.
+
+Also note that
+\begin{align}
+R_{i} &= -\sigma\mathbf{v}^{\top}\epsilon_{i}+\sigma_{\xi}\xi_{i} \notag\\
+&= -\sigma\mathbf{v}^{\top}\epsilon_{i}^{\parallel}+\sigma_{\xi}\xi_{i}
+\end{align}
+so the reward only depends on the on-manifold component, and is statistically
+independent of the off-manifold component, i.e., $R_{i}\perp\epsilon_{i}^{\perp}$.
+
+We are going to examine the statistical properties of the weight update
+step:
+\begin{equation}
+\Delta\theta = \alpha\cdot\frac{1}{N}\sum_{i=1}^{N}Z_{i}\epsilon_{i}
+\end{equation}
+
+Consider the weight update step on- and off-manifold:
+\begin{equation}
+\Delta\theta = P^{\perp}\Delta\theta + P^{\parallel}\Delta\theta
+\end{equation}
+
+
+\paragraph{Off-manifold component}
+\begin{align}
+P^{\perp}\Delta\theta &= \alpha\cdot\frac{1}{N}\sum_{i=1}^{N}Z_{i}P^{\perp}\epsilon_{i} \notag\\
+&= \alpha\cdot\frac{1}{N}\sum_{i=1}^{N}Z_{i}\epsilon_{i}^{\perp}
+\end{align}
+
+Conditioned on the observed normalized reward $Z_{i}$, $P^{\perp}\Delta\theta$
+is a weighted sum of Gaussian random vectors, thus Gaussian:
+\begin{equation}
+P^{\perp}\Delta\theta\,\big|\;\{Z_{i}\}_{i=1}^{N} \sim \mathcal{N}\left(0,\frac{\alpha^{2}}{N^{2}}\sum_{i=1}^{N}Z_{i}^{2}P^{\perp}\right)
+\end{equation}
+
+Since $\{Z_{i}\}_{i=1}^{N}$ are z-scored $\{R_{i}\}_{i=1}^{N}$, the sum satisfies the following identity.%
+\begin{equation}
+\sum_{i=1}^{N}Z_{i}^{2} = N
+\end{equation}
+
+Because of the following equations:
+\begin{align}
+\sigma_{R}^{2} &= \frac{1}{N}\sum_{i=1}^{N}(R_{i}-\mu_{R})^{2}\\
+Z_{i} &= \frac{R_{i}-\mu_{R}}{\sigma_{R}}
+\end{align}
+
+Thus, the conditional distribution is
+\begin{equation}
+P^{\perp}\Delta\theta\,\big|\;\{Z_{i}\}_{i=1}^{N} \sim \mathcal{N}\left(0, \frac{\alpha^{2}}{N^{2}} N P^{\perp}\right)
+\end{equation}
+
+Since the conditional distribution $P^{\perp}\Delta\theta\,\big|\;\{Z_{i}\}_{i=1}^{N}$
+is independent of the observed reward, marginalizing over $Z_{i}$ we have
+\begin{equation}
+P^{\perp}\Delta\theta \sim \mathcal{N}\left(0,\frac{\alpha^{2}}{N}P^{\perp}\right)
+\end{equation}
+
+The norm of the off-manifold component is
+
+\begin{align}
+\mathbb{E}\|P^{\perp}\Delta\theta\|^{2} &=\mathrm{Tr}[\mathrm{Var}[P^{\perp}\Delta\theta]]\notag\\
+&= \mathrm{Tr}\left[\frac{\alpha^{2}}{N}P^{\perp}\right]\notag\\
+&= \frac{\alpha^{2}(d-1)}{N}
+\end{align}
+
+
+\paragraph{On-manifold component}
+
+\begin{align}
+P^{\parallel}\Delta\theta &= \alpha\cdot\frac{1}{N}\sum_{i=1}^{N}Z_{i}P^{\parallel}\epsilon_{i} \notag\\
+&= \alpha\cdot\frac{1}{N}\sum_{i=1}^{N}Z_{i}\epsilon_{i}^{\parallel}
+\end{align}
+
+The on-manifold variable can be expressed as $\epsilon_{i}^{\parallel} = \frac{\mathbf{v}}{\|\mathbf{v}\|} n_{i}$,
+with $n_{i} \sim \mathcal{N}(0,1)$, thus the reward can be written as 
+\begin{align}
+R_{i} &= -\sigma\mathbf{v}^{\top} \epsilon_{i}^{\parallel} + \sigma_{\xi}\xi_{i} \notag\\
+&= -\sigma \frac{\mathbf{v}^{\top}\mathbf{v}}{\|\mathbf{v}\|} n_{i} + \sigma_{\xi}\xi_{i} \notag\\
+&= -\sigma\|\mathbf{v}\| n_{i} + \sigma_{\xi}\xi_{i}
+\end{align}
+
+Recall the definition of observed reward and z-score, 
+\begin{equation}
+Z_{i} = \frac{R_{i} - \mu_{R}}{\sigma_{R}}
+\end{equation}
+
+To simplify derivation, we use the population expectation and standard
+deviation here: 
+\begin{align}
+\mu_{R} &\approx \mathbb{E}[R_{i}] = 0\\
+\sigma_{R}^{2} &\approx \mathrm{Var}[R_{i}] = \sigma^{2}\|\mathbf{v}\|^{2} + \sigma_{\xi}^{2}
+\end{align}
+
+Under these simplifications,
+\begin{align}
+P^{\parallel}\Delta\theta &= \frac{\alpha}{N} \sum_{i=1}^{N} Z_{i} \epsilon_{i}^{\parallel} \notag\\
+&= \frac{\alpha}{N} \sum_{i=1}^{N} \frac{-\sigma\|\mathbf{v}\| n_{i} + \sigma_{\xi}\xi_{i} - \mu_{R}}{\sigma_{R}} n_{i} \frac{\mathbf{v}}{\|\mathbf{v}\|} \notag\\
+&= \frac{\alpha}{N\sigma_{R}}\sum_{i=1}^{N} (-\sigma\|\mathbf{v}\| n_{i} + \sigma_{\xi}\xi_{i}) n_{i} \frac{\mathbf{v}}{\|\mathbf{v}\|}
+\end{align}
+
+The expectation reads
+\begin{align}
+\mathbb{E}[P^{\parallel}\Delta\theta] =&~ \frac{\alpha}{N\sigma_{R}}\sum_{i=1}^{N} \mathbb{E}\left[ (-\sigma\|\mathbf{v}\| n_{i} + \sigma_{\xi}\xi_{i}) n_{i} \right] \frac{\mathbf{v}}{\|\mathbf{v}\|} \notag\\
+=&~\frac{\alpha}{N\sigma_{R}}\mathbb{E}[ -\sigma\|\mathbf{v}\| \sum_{i=1}^{N} n_{i}^{2} + \sigma_{\xi} \sum_{i=1}^{N}\xi_{i} n_{i} ]\frac{\mathbf{v}}{\|\mathbf{v}\|} \notag\\
+=&~\frac{\alpha}{N\sigma_{R}}(-\sigma\|\mathbf{v}\|N)\frac{\mathbf{v}}{\|\mathbf{v}\|} \notag\\
+=&~\frac{-\sigma\alpha}{\sigma_{R}}\mathbf{v} \notag\\
+=&~\frac{-\sigma\alpha\mathbf{v}}{\sqrt{\sigma^{2}\|\mathbf{v}\|^{2} + \sigma_{\xi}^{2}}}
+\end{align}
+where we used independence, $\mathbb{E}[\xi_{i} n_{i}]=0$, and $\mathbb{E}[\sum_{i=1}^{N} n_{i}^{2}] = N$. 
+
+Next, consider the variance. Consider the individual term, $X_{i} = -\sigma\|\mathbf{v}\| n_{i}^{2} + \sigma_{\xi}\xi_{i} n_{i}$,
+and its variance:
+\begin{align}
+\mathrm{Var}[X_{i}] =&~\mathbb{E}[(-\sigma\|\mathbf{v}\| n_{i}^{2} + \sigma_{\xi}\xi_{i} n_{i})^{2}]
+- \mathbb{E}[-\sigma\|\mathbf{v}\| n_{i}^{2} + \sigma_{\xi} \xi_{i} n_{i}]^{2} \notag\\
+=&~\mathbb{E}[ \sigma^{2}\|\mathbf{v}\|^{2} \underbrace{n_{i}^{4}}_{3}
+- 2\sigma\|\mathbf{v}\|\sigma_{\xi} \underbrace{\xi_{i}}_{0} \underbrace{n_{i}^{3}}_{0}
++ \sigma_{\xi}^{2} \underbrace{\xi_{i}^{2}}_{1} \underbrace{n_{i}^{2}}_{1}
+] - (\sigma\|\mathbf{v}\|)^{2} \notag\\
+=&~3\sigma^{2}\|\mathbf{v}\|^{2} + \sigma_{\xi}^{2} - (\sigma\|\mathbf{v}\|)^{2} \notag\\
+=&~2\sigma^{2}\|\mathbf{v}\|^{2} + \sigma_{\xi}^{2}
+\end{align}
+
+Therefore,
+\begin{align}
+\mathrm{Var}[P^{\parallel}\Delta\theta] &= \frac{\alpha^{2}}{N^{2}\sigma_{R}^{2}}N\,\mathrm{Var}[X_{i}] \frac{\mathbf{v}\mathbf{v}^{\top}}{\|\mathbf{v}\|^{2}}
+\notag\\
+&= \frac{ \alpha^{2} (2\sigma^{2}\|\mathbf{v}\|^{2} + \sigma_{\xi}^{2}) }{ N \sigma_{R}^{2} } P^{\parallel} \notag\\
+&= \frac{ \alpha^{2} (2\sigma^{2}\|\mathbf{v}\|^{2} + \sigma_{\xi}^{2}) }{ N (\sigma^{2}\|\mathbf{v}\|^{2} + \sigma_{\xi}^{2}) } P^{\parallel}
+\end{align}
+
+\begin{align}
+\mathbb{E}[\|P^{\parallel}\Delta\theta\|^{2}] =&~ \mathrm{Tr}\left[\mathrm{Var}[P^{\parallel}\Delta\theta]\right] + \mathbb{E}[P^{\parallel}\Delta\theta]^{\top} \mathbb{E}[P^{\parallel}\Delta\theta] \notag\\
+=&~\frac{ \alpha^{2} (2\sigma^{2}\|\mathbf{v}\|^{2} + \sigma_{\xi}^{2}) }{ N ( \sigma^{2}\|\mathbf{v}\|^{2} + \sigma_{\xi}^{2} ) } + \frac{ (\sigma\alpha)^{2} \|\mathbf{v}\|^{2} }{ \sigma^{2}\|\mathbf{v}\|^{2} + \sigma_{\xi}^{2} } \notag\\
+=&~\frac{\alpha^{2}}{N} + \left(1 + \frac{1}{N}\right) \frac{ \sigma^{2}\|\mathbf{v}\|^{2} \alpha^{2} }{ \sigma^{2}\|\mathbf{v}\|^{2} + \sigma_{\xi}^{2} }
+\end{align}
+
+\paragraph{Manifold Alignment of Update}
+
+Consider the ratio of the on- and off-manifold movement:
+
+\begin{equation}
+\mathbb{E}\left[ \|P^{\parallel}\Delta\theta\|^{2} \right] = \frac{\alpha^{2}}{N} + \left( 1 + \frac{1}{N} \right) \frac{ \sigma^{2}\|\mathbf{v}\|^{2}\alpha^{2} }{ \sigma^{2}\|\mathbf{v}\|^{2} + \sigma_{\xi}^{2} }
+\end{equation}
+\begin{equation}
+\mathbb{E}\|P^{\perp}\Delta\theta\|^{2} = \frac{\alpha^{2}(d-1)}{N}
+\end{equation}
+
+The fraction of on-manifold squared deviation in the total deviation is:
+\begin{align}
+\frac{ \mathbb{E}\left[\|P^{\parallel}\Delta\theta\|^2\right] }{ \mathbb{E}\left[\|\Delta\theta\|^2\right] }
+&= \frac{ \mathbb{E}\left[\|P^{\parallel}\Delta\theta\|^{2}\right] }{ \mathbb{E}\left[\|P^{\parallel}\Delta\theta\|^{2}\right] + \mathbb{E}\|P^{\perp}\Delta\theta\|^{2} } \notag\\
+&= \frac{ \frac{\alpha^{2}}{N} + \left(1 + \frac{1}{N}\right) \frac{ \sigma^{2} \|\mathbf{v}\|^{2} \alpha^{2} }{ \sigma^{2} \|\mathbf{v}\|^{2} + \sigma_{\xi}^{2} } }
+  { \frac{ \alpha^{2}(d-1)}{N} + \frac{\alpha^{2}}{N} + \left(1 + \frac{1}{N}\right) \frac{ \sigma^{2}\|\mathbf{v}\|^{2} \alpha^{2} }{ \sigma^{2}\|\mathbf{v}\|^{2} + \sigma_{\xi}^{2} } } \notag\\
+&= \frac{ \frac{1}{N} + \frac{N+1}{N} \frac{ \sigma^{2} \|\mathbf{v}\|^{2} }{ \sigma^{2} \|\mathbf{v}\|^{2} + \sigma_{\xi}^{2} } }
+  { \frac{d}{N} + \frac{N+1}{N} \frac{ \sigma^{2} \|\mathbf{v}\|^{2} }{ \sigma^{2}\|\mathbf{v}\|^{2} + \sigma_{\xi}^{2} } } \notag\\
+&= \frac{ 1 + (N+1) \frac{ \sigma^{2}\|\mathbf{v}\|^{2} }{ \sigma^{2}\|\mathbf{v}\|^{2} + \sigma_{\xi}^{2} } }
+         { d + (N+1)\frac{ \sigma^{2}\|\mathbf{v}\|^{2} }{ \sigma^{2}\|\mathbf{v}\|^{2} + \sigma_{\xi}^{2} } }
+\end{align}
+
+where $s:=\frac{\sigma^{2}\|\mathbf{v}\|^{2}}{\sigma^{2}\|\mathbf{v}\|^{2}+\sigma_{\xi}^{2}}$. 
+
+This formulation reveals the key scaling relation of on and off manifold
+movement 
+\begin{itemize}
+\item Signal to noise ratio $s:=\frac{\sigma^{2}\|\mathbf{v}\|^{2}}{\sigma^{2}\|\mathbf{v}\|^{2}+\sigma_{\xi}^{2}}$
+, which range from $s\in[0,1]$
+\begin{itemize}
+\item When no gradient exists, $\|\mathbf{v}\|^{2}=0$, then independent
+of number of sample $N$, $\rho=1/d$. i.e. the norm on one axis among
+$d$ axis is $1/d$.
+\item Similarly, when $\sigma_{\xi}^{2}\gg\sigma^{2}\|\mathbf{v}\|^{2}$
+i.e. the reward noise variance is much higher than the variation of
+signal under exploration range $\sigma$, then it's effectively no
+gradient and no guidance. 
+\item In the other extreme, when very little reward noise, $\sigma_{\xi}^{2}\ll\sigma^{2}\|\mathbf{v}\|^{2}$,
+$s\approx1$, then $\rho=\frac{N+2}{d+N+1}$. 
+\item Via differentiation, one can show, $\rho$ monotonically depends on
+signal to noise ratio $s$
+\end{itemize}
+\item Full dimension $d$. Increase the full space dim $d$ will monotonically
+decrease the on manifold fraction $\rho$. 
+\item Sample size per generation $N$. Increase the sample size $N$ will
+monotonically increase the on manifold fraction $\rho$. 
+\begin{itemize}
+\item Note this scaling is almost linear, so to get half of the variance
+on manifold, one need $(N+1)s\approx d$. In reality, $d\sim10^{9}$
+, which makes this impossible. 
+\item In most realistic regimes $N\ll d$, which makes this on manifold
+ratio per step nearly negligible. 
+\end{itemize}
+\end{itemize}
+
+\subsubsection{Quadratic landscape analysis}
+
+Consider a quadratic potential centered / peaked at the origin $\theta^{*}=0$.
+\[
+R(\theta)=-\frac{1}{2}\theta^{\top}Q\theta
+\]
+
+At current state $\theta_{0}$, the reward at perturbed locations
+with observation noise are, where $\xi_{i}\sim\mathcal{N}(0,1)$,
+$\epsilon_{i}\sim\mathcal{N}(0,I_{d})$
+\begin{align*}
+R_{i} & =R(\theta_{0}+\sigma\epsilon_{i})+\sigma_{\xi}\xi_{i}\\
+ & =-\frac{1}{2}(\theta_{0}+\sigma\epsilon_{i})^{\top}Q(\theta_{0}+\sigma\epsilon_{i})+\sigma_{\xi}\xi_{i}\\
+ & =-\frac{1}{2}\theta_{0}^{\top}Q\theta_{0}-\sigma\,\theta_{0}^{\top}Q\epsilon_{i}-\frac{\sigma^{2}}{2}\epsilon_{i}^{\top}Q\epsilon_{i}+\sigma_{\xi}\xi_{i}
+\end{align*}
+
+Expectation of reward reads, which is the population mean of reward
+samples 
+\[
+\mathbb{E}[R_{i}]=-\frac{1}{2}\theta_{0}^{\top}Q\theta_{0}-\frac{\sigma^{2}}{2}\mathrm{Tr}Q
+\]
+
+Center the rewards with population mean, we define 
+\[
+\tilde{R}_{i}:=R_{i}-\mathbb{E}[R_{i}]
+\]
+
+Centered reward has three terms, linear $A$, quadratic \textbf{$B$},
+and noise $C$ 
+\[
+\tilde{R}_{i}=\underbrace{-\sigma\,\theta_{0}^{\top}Q\epsilon_{i}}_{\text{linear }A}\underbrace{-\frac{\sigma^{2}}{2}(\epsilon_{i}^{\top}Q\epsilon_{i}-\mathrm{Tr}Q)}_{\text{quad }B}+\underbrace{\sigma_{\xi}\xi_{i}}_{\text{scalar noise }C}
+\]
+
+One can abbreviate $\mathbf{v}:=Q^{\top}\theta_{0}$ as the negative
+gradient. 
+
+The weight update reads, 
+\begin{align*}
+\Delta\theta & =\alpha\cdot\frac{1}{N}\sum_{i=1}^{N}Z_{i}\epsilon_{i}\\
+ & =\frac{\alpha}{N\sigma_{R}}\sum_{i=1}^{N}\tilde{R}_{i}\epsilon_{i}
+\end{align*}
+
+Since perturbations $\tilde{R}_{i}\epsilon_{i}$ are i.i.d. sampled
+\[
+\mathbb{E}[\Delta\theta]=\frac{\alpha}{\sigma_{R}}\mathbb{E}[\tilde{R}_{i}\epsilon_{i}]
+\]
+
+and 
+\[
+\mathrm{Cov}[\Delta\theta]=\frac{\alpha^{2}}{N\sigma_{R}^{2}}\mathrm{Cov}[\tilde{R}_{i}\epsilon_{i}]
+\]
+
+One observe that both $\tilde{R}_{i}$ and $\tilde{R}_{i}\epsilon_{i}$
+are \textbf{polynomial functions of gaussian random variables} $\epsilon_{i}$
+and $\xi_{i}$ (up to 3rd order), thus we can compute \textbf{their
+moment of any order} via Wick-Isserlis theorem \textbackslash cite,
+writing out mean and covariance of them.
+
+Here are the specific calculations 
+
+\paragraph{Reward variance}
+
+Note that all three terms $A,B,C$ are centered 
+\begin{align*}
+\mathbb{E}[A] & =0\\
+\mathbb{E}[B] & =0\\
+\mathbb{E}[C] & =0
+\end{align*}
+
+Further $A\perp C$, $B\perp C$ due to independence of noise, and
+\[
+\mathbb{E}[AB]=0
+\]
+
+as it only has polynomial of $\epsilon_{i}$ of odd order 1 and 3,
+thus its expectation is 0. Thus, $A,B,C$ are not correlated with
+one another. Thus, 
+\begin{align*}
+\mathrm{Var}[\tilde{R}_{i}] & =\mathbb{E}[\tilde{R}_{i}^{2}]\\
+ & =\mathbb{E}[A^{2}]+\mathbb{E}[B^{2}]+\mathbb{E}[C^{2}]
+\end{align*}
+
+all cross terms vanish due to no correlation.
+\begin{align*}
+\mathbb{E}[A^{2}] & =\mathbb{E}[(-\sigma\,\theta_{0}^{\top}Q\epsilon_{i})\cdot(-\sigma\,\theta_{0}^{\top}Q\epsilon_{i})]\\
+ & =\sigma^{2}\theta_{0}^{\top}QQ^{\top}\theta_{0}\\
+ & =\sigma^{2}\|\mathbf{v}\|^{2}
+\end{align*}
+\[
+\mathbb{E}[C^{2}]=\sigma_{\xi}^{2}
+\]
+\begin{align*}
+\mathbb{E}[B^{2}] & =\mathbb{E}[(\frac{\sigma^{2}}{2}(\epsilon_{i}^{\top}Q\epsilon_{i}-\mathrm{Tr}Q))^{2}]\\
+ & =\frac{\sigma^{4}}{4}\mathbb{E}[\epsilon_{i}^{\top}Q\epsilon_{i}\cdot(\epsilon_{i}^{\top}Q\epsilon_{i}-\mathrm{Tr}Q)-\mathrm{Tr}Q\cdot(\epsilon_{i}^{\top}Q\epsilon_{i}-\mathrm{Tr}Q)]\\
+ & =\frac{\sigma^{4}}{4}\Big(\mathbb{E}[\epsilon_{i}^{\top}Q\epsilon_{i}\cdot\epsilon_{i}^{\top}Q\epsilon_{i}]-(\mathrm{Tr}Q)^{2}\Big)
+\end{align*}
+
+The first quintic polynomial of $\epsilon_{i}$ can be tackled by
+Wick-Isserelis theorem. With slight mis-use of notation, here we let
+$\epsilon_{a}$ denote the $a$th element of $\epsilon_{i}$ vector.
+
+Then 
+\[
+\mathbb{E}[\epsilon_{a}\epsilon_{b}\epsilon_{c}\epsilon_{d}]=I_{ab}I_{cd}+I_{ad}I_{bc}+I_{ac}I_{bd}
+\]
+
+thus 
+\begin{align*}
+\mathbb{E}[\epsilon_{i}^{\top}Q\epsilon_{i}\cdot\epsilon_{i}^{\top}Q\epsilon_{i}] & =\mathbb{E}[\sum_{a,b,c,d}Q_{ab}Q_{cd}\epsilon_{a}\epsilon_{b}\epsilon_{c}\epsilon_{d}]\\
+ & =\sum_{a,b,c,d}Q_{ab}Q_{cd}\mathbb{E}[\epsilon_{a}\epsilon_{b}\epsilon_{c}\epsilon_{d}]\\
+ & =\sum_{a,b,c,d}Q_{ab}Q_{cd}(\delta_{ab}\delta_{cd}+\delta_{ac}\delta_{bd}+\delta_{ad}\delta_{bc})\\
+ & =\mathrm{Tr}Q\mathrm{Tr}Q+\mathrm{Tr}[Q^{\top}Q]+\mathrm{Tr}[QQ]
+\end{align*}
+
+Thus 
+\begin{align*}
+\mathbb{E}[B^{2}] & =\frac{\sigma^{4}}{4}\Big(\mathbb{E}[\epsilon_{i}^{\top}Q\epsilon_{i}\cdot\epsilon_{i}^{\top}Q\epsilon_{i}]-(\mathrm{Tr}Q)^{2}\Big)\\
+ & =\frac{\sigma^{4}}{4}\Big((\mathrm{Tr}Q)^{2}+2\mathrm{Tr}[Q^{2}]-(\mathrm{Tr}Q)^{2}\Big)\\
+ & =\frac{\sigma^{4}}{2}\mathrm{Tr}[Q^{2}]
+\end{align*}
+
+In sum, the population variance of reward reads, 
+\[
+\mathrm{Var}[\tilde{R}_{i}]=\sigma^{2}\|\mathbf{v}\|^{2}+\frac{\sigma^{4}}{2}\mathrm{Tr}[Q^{2}]+\sigma_{\xi}^{2}
+\]
+
+and the population standard deviation is 
+\[
+\sigma_{R}=\sqrt{\sigma^{2}\|\mathbf{v}\|^{2}+\frac{\sigma^{4}}{2}\mathrm{Tr}[Q^{2}]+\sigma_{\xi}^{2}}
+\]
+
+
+\paragraph{Expectation of parameter update}
+
+Next let's examine expectation of parameter change, where the key
+is $\mathbb{E}[\tilde{R}_{i}\epsilon_{i}]$, decomposing into three
+terms
+\[
+\mathbb{E}[\tilde{R}_{i}\epsilon_{i}]=\mathbb{E}[A\epsilon_{i}]+\mathbb{E}[B\epsilon_{i}]+\mathbb{E}[C\epsilon_{i}]
+\]
+
+Second term vanish due to the odd order of Gaussian variable, 
+\[
+\mathbb{E}[B\epsilon_{i}]=0
+\]
+
+Third term vanish due to independence $\epsilon_{i}\perp\xi_{i}$
+\[
+\mathbb{E}[C\epsilon_{i}]=0
+\]
+
+First term is easy to calculate 
+\begin{align*}
+\mathbb{E}[A\epsilon_{i}] & =\mathbb{E}[(-\sigma\,\theta_{0}^{\top}Q\epsilon_{i})\epsilon_{i}]\\
+ & =-\sigma\mathbb{E}[\epsilon_{i}(\epsilon_{i}^{\top}\mathbf{v})]\\
+ & =-\sigma\mathbf{v}
+\end{align*}
+
+So in sum, 
+\[
+\mathbb{E}[\tilde{R}_{i}\epsilon_{i}]=-\sigma\mathbf{v}
+\]
+
+\begin{align*}
+\mathbb{E}[\Delta\theta] & =\frac{\alpha}{\sigma_{R}}\mathbb{E}[\tilde{R}_{i}\epsilon_{i}]\\
+ & =\frac{-\alpha\sigma\mathbf{v}}{\sigma_{R}}\\
+ & =\frac{-\alpha\sigma\mathbf{v}}{\sqrt{\sigma^{2}\|\mathbf{v}\|^{2}+\frac{\sigma^{4}}{2}\mathrm{Tr}[Q^{2}]+\sigma_{\xi}^{2}}}
+\end{align*}
+
+which is on expectation aligned with local gradient direction, but
+scaled by signal to noise ratio. 
+
+\paragraph{Variance of parameter update}
+
+Finally, let's examine variance of parameter change, where the key
+is $\mathrm{Cov}[\tilde{R}_{i}\epsilon_{i}]$,
+\begin{align*}
+\mathrm{Cov}[\tilde{R}_{i}\epsilon_{i}] & =\mathbb{E}[\tilde{R}_{i}\epsilon_{i}(\tilde{R}_{i}\epsilon_{i})^{\top}]-\mathbb{E}[\tilde{R}_{i}\epsilon_{i}]\mathbb{E}[\tilde{R}_{i}\epsilon_{i}]^{\top}\\
+ & =\mathbb{E}[\tilde{R}_{i}^{2}\epsilon_{i}\epsilon_{i}^{\top}]-\sigma^{2}\mathbf{v}\mathbf{v}^{\top}
+\end{align*}
+
+Tackling the first term, using the same logic (odd order and independence)
+to eliminate terms, 
+\begin{align*}
+\mathbb{E}[\tilde{R}_{i}^{2}\epsilon_{i}\epsilon_{i}^{\top}] & =\mathbb{E}[(A+B+C)^{2}\epsilon_{i}\epsilon_{i}^{\top}]\\
+ & =\mathbb{E}[(A^{2}+B^{2}+C^{2}+2AB+2BC+2AC)\epsilon_{i}\epsilon_{i}^{\top}]\\
+ & =\mathbb{E}[(A^{2}+B^{2}+C^{2})\epsilon_{i}\epsilon_{i}^{\top}]
+\end{align*}
+
+Tackle $C$ term. 
+\begin{align*}
+\mathbb{E}[C^{2}\epsilon_{i}\epsilon_{i}^{\top}] & =\mathbb{E}[C^{2}]\mathbb{E}[\epsilon_{i}\epsilon_{i}^{\top}]\\
+ & =\sigma_{\xi}^{2}I_{d}
+\end{align*}
+
+Tackle \textbf{$A$} term
+
+\begin{align*}
+\mathbb{E}[A^{2}\epsilon_{i}\epsilon_{i}^{\top}] & =\mathbb{E}[(-\sigma\,\theta_{0}^{\top}Q\epsilon_{i})^{2}\epsilon_{i}\epsilon_{i}^{\top}]\\
+ & =\sigma^{2}\mathbb{E}[(\mathbf{v}^{\top}\epsilon_{i})^{2}\epsilon_{i}\epsilon_{i}^{\top}]
+\end{align*}
+
+using the same Wick theorem trick we have each element 
+\begin{align*}
+\mathbb{E}[(\mathbf{v}^{\top}\epsilon_{i})^{2}\epsilon_{i}\epsilon_{i}^{\top}]_{cd} & =\mathbb{E}[\sum_{a,b}\mathbf{v}_{a}\mathbf{v}_{b}\epsilon_{a}\epsilon_{b}\epsilon_{c}\epsilon_{d}]\\
+ & =\sum_{a,b}\mathbf{v}_{a}\mathbf{v}_{b}\mathbb{E}[\epsilon_{a}\epsilon_{b}\epsilon_{c}\epsilon_{d}]\\
+ & =\sum_{a,b}\mathbf{v}_{a}\mathbf{v}_{b}(\delta_{ab}\delta_{cd}+\delta_{ac}\delta_{bd}+\delta_{ad}\delta_{cb})\\
+ & =\|\mathbf{v}\|^{2}\delta_{cd}+\mathbf{v}_{c}\mathbf{v}_{d}+\mathbf{v}_{d}\mathbf{v}_{c}
+\end{align*}
+
+Thus, 
+\[
+\mathbb{E}[A^{2}\epsilon_{i}\epsilon_{i}^{\top}]=\sigma^{2}(\|\mathbf{v}\|^{2}I_{d}+2\mathbf{v}\mathbf{v}^{\top})
+\]
+
+Finally, tackle $B$ term 
+\begin{align*}
+\mathbb{E}[B^{2}\epsilon_{i}\epsilon_{i}^{\top}] & =\mathbb{E}[(\frac{\sigma^{2}}{2}(\epsilon_{i}^{\top}Q\epsilon_{i}-\mathrm{Tr}Q))^{2}\epsilon_{i}\epsilon_{i}^{\top}]\\
+ & =\frac{\sigma^{4}}{4}\mathbb{E}[\Big((\epsilon_{i}^{\top}Q\epsilon_{i})^{2}-2\mathrm{Tr}Q\cdot\epsilon_{i}^{\top}Q\epsilon_{i}+(\mathrm{Tr}Q)^{2}\Big)\epsilon_{i}\epsilon_{i}^{\top}]
+\end{align*}
+
+where we encounter 2nd, 4th and 6th order terms. 
+
+2nd order term
+\[
+\mathbb{E}[(\mathrm{Tr}Q)^{2}\epsilon_{i}\epsilon_{i}^{\top}]=(\mathrm{Tr}Q)^{2}I_{d}
+\]
+
+4th order term 
+\begin{align*}
+\mathbb{E}[\epsilon_{i}^{\top}Q\epsilon_{i}\cdot\epsilon_{i}\epsilon_{i}^{\top}]_{cd} & =\mathbb{E}[\sum_{a,b}Q_{ab}\epsilon_{a}\epsilon_{b}\epsilon_{c}\epsilon_{d}]\\
+ & =\sum_{a,b}Q_{ab}(\delta_{ab}\delta_{cd}+\delta_{ac}\delta_{bd}+\delta_{ad}\delta_{cb})\\
+ & =\mathrm{Tr}Q\cdot\delta_{cd}+Q_{cd}+Q_{dc}
+\end{align*}
+
+Thus
+\begin{align*}
+\mathbb{E}[\epsilon_{i}^{\top}Q\epsilon_{i}\cdot\epsilon_{i}\epsilon_{i}^{\top}] & =\mathrm{Tr}Q\cdot I_{d}+Q+Q^{\top}\\
+ & =\mathrm{Tr}Q\cdot I_{d}+2Q
+\end{align*}
+
+6th order term
+\[
+\mathbb{E}[\Big((\epsilon_{i}^{\top}Q\epsilon_{i})^{2}\Big)\epsilon_{i}\epsilon_{i}^{\top}]_{ef}=\mathbb{E}[\sum_{a,b,c,d}Q_{ab}Q_{cd}\epsilon_{a}\epsilon_{b}\epsilon_{c}\epsilon_{d}\epsilon_{e}\epsilon_{f}]
+\]
+
+Note this has $C_{6}^{2}=15$ pairings, with some diagrammatic reasoning,
+we can find topologically we have three types 
+\begin{align*}
+\mathbb{E}[\Big((\epsilon_{i}^{\top}Q\epsilon_{i})^{2}\Big)\epsilon_{i}\epsilon_{i}^{\top}]_{ef} & =\mathbb{E}[\sum_{a,b,c,d}Q_{ab}Q_{cd}\epsilon_{a}\epsilon_{b}\epsilon_{c}\epsilon_{d}\epsilon_{e}\epsilon_{f}]\\
+ & =\sum_{a,b,c,d}Q_{ab}Q_{cd}\Big(\underbrace{\delta_{ab}\delta_{cd}\delta_{ef}}_{1\text{case}}+\underbrace{\delta_{ac}\delta_{bd}\delta_{ef}+...}_{2\text{case}}+\\
+ & \quad\quad\underbrace{\delta_{ae}\delta_{bf}\delta_{cd}+...}_{4\text{case}}+\underbrace{\delta_{ae}\delta_{cf}\delta_{bd}+...}_{8\text{case}}\Big)\\
+ & =((\mathrm{Tr}Q)^{2}+2\mathrm{Tr}Q^{2})\delta_{ef}+4\mathrm{Tr}Q\cdot Q_{ef}+8[Q^{2}]_{ef}
+\end{align*}
+
+Thus 
+\[
+\mathbb{E}[\Big((\epsilon_{i}^{\top}Q\epsilon_{i})^{2}\Big)\epsilon_{i}\epsilon_{i}^{\top}]=((\mathrm{Tr}Q)^{2}+2\mathrm{Tr}Q^{2})I_{d}+4\mathrm{Tr}Q\cdot Q+8Q^{2}
+\]
+
+
+\begin{figure}[h]
+    \centering
+    \begin{tikzpicture}[scale=1.0, every node/.style={font=\small}]
+      % helper macro for Π-shaped Q edge
+      \newcommand{\Qedge}[3]{
+        \draw[dashed] (#1) |- ($(#1)!0.5!(#2)+(0,0.4)$) -| (#2)
+          node[midway,above] {$#3$};
+      }
+    
+      % helper macro for external cross node
+      \newcommand{\crossnode}[3]{
+        \node[draw, cross out, inner sep=2pt, line width=0.8pt, label=below:$#2$] (#1) at #3 {};
+      }
+    
+      % -- Move titles up above diagrams to avoid overlap --
+      % ---------- Type I ----------
+      \node at (0,3.2) {\textbf{Type I: $1$ diagram}};
+    
+      \node[circle,fill=black,inner sep=1.5pt,label=below:$a$] (a1) at (-1.2,2) {};
+      \node[circle,fill=black,inner sep=1.5pt,label=below:$b$] (b1) at (-0.6,2) {};
+      \node[circle,fill=black,inner sep=1.5pt,label=below:$c$] (c1) at (0.4,2) {};
+      \node[circle,fill=black,inner sep=1.5pt,label=below:$d$] (d1) at (1.0,2) {};
+      \crossnode{e1}{e}{(2.0,2)}
+      \crossnode{f1}{f}{(2.8,2)}
+    
+      \Qedge{a1}{b1}{Q_{ab}}
+      \Qedge{c1}{d1}{Q_{cd}}
+    
+      \draw (e1) -- (f1);
+      \draw (a1) to[out=0,in=180] (b1);
+      \draw (c1) to[out=0,in=180] (d1);
+    
+      \node at (0.8,1.35) {$\Rightarrow (\mathrm{Tr}Q)^2\,\delta_{ef}$};
+    
+      % ---------- Type II ----------
+      \node at (0,0.2) {\textbf{Type II: $2$ diagrams}};
+    
+      \node[circle,fill=black,inner sep=1.5pt,label=below:$a$] (a2) at (-1.2,-1) {};
+      \node[circle,fill=black,inner sep=1.5pt,label=below:$b$] (b2) at (-0.6,-1) {};
+      \node[circle,fill=black,inner sep=1.5pt,label=below:$c$] (c2) at (0.4,-1) {};
+      \node[circle,fill=black,inner sep=1.5pt,label=below:$d$] (d2) at (1.0,-1) {};
+      \crossnode{e2}{e}{(2.0,-1)}
+      \crossnode{f2}{f}{(2.8,-1)}
+    
+      \Qedge{a2}{b2}{Q_{ab}}
+      \Qedge{c2}{d2}{Q_{cd}}
+    
+      \draw (a2) to[out=20,in=160] (c2);
+      \draw (b2) to[out=20,in=160] (d2);
+      \draw (e2) -- (f2);
+    
+      \node at (0.8,-1.65) {$\Rightarrow 2\,\mathrm{Tr}(Q^2)\,\delta_{ef}$};
+    
+      % ---------- Type III ----------
+      \node at (7,3.2) {\textbf{Type III: $4$ diagrams}};
+    
+      \node[circle,fill=black,inner sep=1.5pt,label=below:$a$] (a3) at (5.5,2) {};
+      \node[circle,fill=black,inner sep=1.5pt,label=below:$b$] (b3) at (6.1,2) {};
+      \node[circle,fill=black,inner sep=1.5pt,label=below:$c$] (c3) at (7.1,2) {};
+      \node[circle,fill=black,inner sep=1.5pt,label=below:$d$] (d3) at (7.7,2) {};
+      \crossnode{e3}{e}{(8.7,2)}
+      \crossnode{f3}{f}{(9.5,2)}
+    
+      \Qedge{a3}{b3}{Q_{ab}}
+      \Qedge{c3}{d3}{Q_{cd}}
+    
+      \draw (c3) to[out=15,in=165] (e3);
+      \draw (d3) to[out=15,in=165] (f3);
+      \draw (a3) to[out=0,in=180] (b3);
+    
+      \node at (7.5,1.35) {$\Rightarrow 4\,\mathrm{Tr}(Q)\,Q_{ef}$};
+    
+      % ---------- Type IV ----------
+      \node at (7,0.2) {\textbf{Type IV: $8$ diagrams}};
+    
+        \node[circle,fill=black,inner sep=1.5pt,label=below:$a$] (a4) at (5.5,-1) {};
+        \node[circle,fill=black,inner sep=1.5pt,label=below:$b$] (b4) at (6.1,-1) {};
+        \node[circle,fill=black,inner sep=1.5pt,label=below:$c$] (c4) at (7.1,-1) {};
+        \node[circle,fill=black,inner sep=1.5pt,label=below:$d$] (d4) at (7.7,-1) {};
+        \crossnode{e4}{e}{(9.0,-1)}
+        \crossnode{f4}{f}{(10.0,-1)}
+
+        \Qedge{a4}{b4}{Q_{ab}}
+        \Qedge{c4}{d4}{Q_{cd}}
+
+        \draw (a4) to[out=15,in=165] (e4);
+        \draw (b4) to[out=0,in=180] (c4);
+        \draw (d4) to[out=15,in=165] (f4);
+    
+      \node at (7.5,-1.65) {$\Rightarrow 8\,(Q^2)_{ef}$};
+    
+    \end{tikzpicture}
+    \caption{Wick contraction classes for $\mathbb{E}[(\epsilon^\top Q\epsilon)^2\,\epsilon_e\epsilon_f]$, with external loose ends $e,f$ shown as crosses.}
+\end{figure}
+
+
+In summary
+\begin{align*}
+\mathbb{E}[B^{2}\epsilon_{i}\epsilon_{i}^{\top}] & =\frac{\sigma^{4}}{4}\mathbb{E}[\Big((\epsilon_{i}^{\top}Q\epsilon_{i})^{2}-2\mathrm{Tr}Q\cdot\epsilon_{i}^{\top}Q\epsilon_{i}+(\mathrm{Tr}Q)^{2}\Big)\epsilon_{i}\epsilon_{i}^{\top}]\\
+ & =\frac{\sigma^{4}}{4}\Big[((\mathrm{Tr}Q)^{2}+2\mathrm{Tr}Q^{2})I_{d}+4\mathrm{Tr}Q\cdot Q+8Q^{2}\\
+ & \quad-2\mathrm{Tr}Q\cdot(\mathrm{Tr}Q\cdot I_{d}+2Q)\\
+ & \quad+(\mathrm{Tr}Q)^{2}I_{d}\Big]\\
+ & =\frac{\sigma^{4}}{4}\Big[(2\mathrm{Tr}Q^{2})I_{d}+8Q^{2}\Big]\\
+ & =\frac{\sigma^{4}}{2}\Big[(\mathrm{Tr}Q^{2})\cdot I_{d}+4Q^{2}\Big]
+\end{align*}
+
+Thus
+
+\begin{align*}
+\mathbb{E}[\tilde{R}_{i}^{2}\epsilon_{i}\epsilon_{i}^{\top}] & =\mathbb{E}[(A^{2}+B^{2}+C^{2})\epsilon_{i}\epsilon_{i}^{\top}]\\
+ & =\sigma^{2}(\|\mathbf{v}\|^{2}I_{d}+2\mathbf{v}\mathbf{v}^{\top})+\frac{\sigma^{4}}{2}\Big[(\mathrm{Tr}Q^{2})\cdot I_{d}+4Q^{2}\Big]+\sigma_{\xi}^{2}I_{d}
+\end{align*}
+
+The covariance term reads 
+\begin{align*}
+\mathrm{Cov}[\tilde{R}_{i}\epsilon_{i}] & =\mathbb{E}[\tilde{R}_{i}^{2}\epsilon_{i}\epsilon_{i}^{\top}]-\sigma^{2}\mathbf{v}\mathbf{v}^{\top}\\
+ & =\sigma^{2}(\|\mathbf{v}\|^{2}I_{d}+\mathbf{v}\mathbf{v}^{\top})+\frac{\sigma^{4}}{2}\Big[(\mathrm{Tr}Q^{2})\cdot I_{d}+4Q^{2}\Big]+\sigma_{\xi}^{2}I_{d}
+\end{align*}
+
+Recall that $\mathrm{Var}[\tilde{R}_{i}]=\sigma^{2}\|\mathbf{v}\|^{2}+\frac{\sigma^{4}}{2}\mathrm{Tr}[Q^{2}]+\sigma_{\xi}^{2}$
+
+\[
+\mathrm{Cov}[\tilde{R}_{i}\epsilon_{i}]=\sigma^{2}\mathbf{v}\mathbf{v}^{\top}+2\sigma^{4}Q^{2}+\sigma_{R}^{2}I_{d}
+\]
+
+Thus in summary we have mean and covariance of parameter update, $\mathbf{v}:=Q\theta_{0}$
+\begin{align*}
+\mathbb{E}[\Delta\theta] & =\frac{\alpha}{\sigma_{R}}\mathbb{E}[\tilde{R}_{i}\epsilon_{i}]\\
+ & =\frac{-\alpha\sigma\mathbf{v}}{\sigma_{R}}
+\end{align*}
+\begin{align*}
+\mathrm{Cov}[\Delta\theta] & =\frac{\alpha^{2}}{N\sigma_{R}^{2}}\mathrm{Cov}[\tilde{R}_{i}\epsilon_{i}]\\
+ & =\frac{\alpha^{2}}{N\sigma_{R}^{2}}\Big(\sigma^{2}\mathbf{v}\mathbf{v}^{\top}+2\sigma^{4}Q^{2}+\sigma_{R}^{2}I_{d}\Big)\\
+ & =\frac{\alpha^{2}}{N}I_{d}+\frac{\alpha^{2}}{N\sigma_{R}^{2}}\Big(\sigma^{2}\mathbf{v}\mathbf{v}^{\top}+2\sigma^{4}Q^{2}\Big)
+\end{align*}
+
+the covariance of weight update has three terms 
+\begin{itemize}
+\item An isotropic variance term from the Gaussian exploration per se. $\frac{\alpha^{2}}{N}I_{d}$
+\item A rank-1 term along current gradient direction $\mathbf{v}$, $\frac{\alpha^{2}\sigma^{2}}{N\sigma_{R}^{2}}\mathbf{v}\mathbf{v}^{\top}$
+\item A term corresponding to landscape curvature, i.e. higher variance
+along higher curvature directions, $\frac{2\sigma^{4}\alpha^{2}}{N\sigma_{R}^{2}}Q^{2}$
+\end{itemize}
+
+\paragraph{Order analysis of quadratic landscape }
+
+Note the order of the terms, using 1st term as reference,
+
+the 2nd term is of the order $\frac{\sigma^{2}}{\sigma_{R}^{2}}\|\mathbf{v}\|^{2}$
+on the gradient direction 
+
+the 3rd term is of the order $\frac{2\sigma^{4}}{\sigma_{R}^{2}}\mathbf{u}^{\top}Q^{2}\mathbf{u}$
+along each direction $\mathbf{u}$. 
+
+Since in practise, $2\sigma^{2}$ is very small $4.5\times10^{-6}$,
+generally the quadratic term is small and is small perturbation. Compare
+the 2nd and 3rd term along a specific direction $\mathbf{u}$, we'd
+derive the condition when the 3rd quadratic term has comparable effect.
+\begin{align*}
+\frac{2\sigma^{4}}{\sigma_{R}^{2}}\mathbf{u}^{\top}Q^{2}\mathbf{u} & \approx\frac{\sigma^{2}}{\sigma_{R}^{2}}\|\mathbf{v}\|^{2}\\
+2\sigma^{2}\mathbf{u}^{\top}Q^{2}\mathbf{u} & \approx\theta_{0}^{\top}Q^{2}\theta_{0}\\
+\mathbf{u}^{\top}Q^{2}\mathbf{u} & \approx\frac{1}{2\sigma^{2}}\theta_{0}^{\top}Q^{2}\theta_{0}
+\end{align*}
+
+Assume $\mathbf{u}$ is an eigenvector of $Q$ with eigenvalue $\lambda_{k}$,
+\begin{align*}
+\lambda_{k}^{2} & \approx\frac{1}{2\sigma^{2}}\theta_{0}^{\top}Q^{2}\theta_{0}\\
+\lambda_{k} & \approx\frac{\|\mathbf{v}\|}{\sqrt{2}\sigma}
+\end{align*}
+\[
+\lambda_{k}^{2}\approx\frac{1}{2\sigma^{2}}\sum_{i=1}^{d}\lambda_{i}^{2}(\theta_{0}^{\top}\mathbf{u}_{i})^{2}
+\]
+
+This shows that the current gradient norm $\|\mathbf{v}\|$ needs
+to be much smaller (at least $\sigma$ times) and the eigenvalue /
+curvature of the probe direction needs to be sharp enough for the
+3rd term to be comparable to the 2nd term. Two scenarios this could
+happen 
+\begin{itemize}
+\item For really sharply curved directions $\lambda_{k}$ this is usually
+be true. 
+\item The current state $\theta_{0}$ is close to optimum $\theta^{*}=0$
+or lies in the vast valley of degenerate solution, i.e. $Q\theta_{0}=0$,
+$\theta_{0}$ in the null space of $Q$. 
+\end{itemize}
+
+\subsubsection{Multi-step analysis for quadratic landscape}
+
+In a sense we could write down the iteration as 
+\begin{align*}
+\theta_{1}-\theta_{0} & =\frac{-\alpha\sigma\mathbf{v}}{\sigma_{R}}+\eta_{0}\\
+ & =-\frac{\alpha\sigma}{\sigma_{R}}Q\theta_{0}+\eta_{0}
+\end{align*}
+
+Thus
+\[
+\theta_{t+1}=\Big(I-\frac{\alpha\sigma}{\sigma_{R}}Q\Big)\ \theta_{t}+\eta_{t}
+\]
+
+where, 
+\begin{align*}
+\mathrm{Cov}[\eta_{t}] & =\frac{\alpha^{2}}{N\sigma_{R}^{2}}\Big(\sigma^{2}\mathbf{v}\mathbf{v}^{\top}+2\sigma^{4}Q^{2}+\sigma_{R}^{2}I_{d}\Big)\\
+ & =\frac{\alpha^{2}}{N}I_{d}+\frac{\alpha^{2}}{N\sigma_{R}^{2}}\Big(\sigma^{2}Q\theta_{t}\theta_{t}^{\top}Q+2\sigma^{4}Q^{2}\Big)
+\end{align*} 
+
+and 
+\begin{align*}
+\sigma_{R} & =\sqrt{\sigma^{2}\|\mathbf{v}\|^{2}+\frac{\sigma^{4}}{2}\mathrm{Tr}[Q^{2}]+\sigma_{\xi}^{2}}\\
+ & =\sqrt{\sigma^{2}\theta_{t}^{\top}Q^{2}\theta_{t}+\frac{\sigma^{4}}{2}\mathrm{Tr}[Q^{2}]+\sigma_{\xi}^{2}}
+\end{align*}
+
+to simplify we could assume it's Gaussian, 
+
+\paragraph{Simplified ES-optimization process }
+
+Consider the simplified version, where the $\sigma_{R}$ is held constant. 
+
+To simplify it even more, assume $\eta_{t}$ is Gaussian and isotropic
+each step $\frac{\alpha^{2}}{N}I_{d}$, i.e. ignore the 2nd and 3rd
+term $\frac{\alpha^{2}}{N\sigma_{R}^{2}}\Big(\sigma^{2}Q\theta_{t}\theta_{t}^{\top}Q+2\sigma^{4}Q^{2}\Big)$
+
+Thus the optimization iteration reads, 
+\[
+\theta_{t+1}=\Big(I-\frac{\alpha\sigma}{\sigma_{R}}Q\Big)\theta_{t}+\eta_{t},\quad\eta_{t}\sim\mathcal{N}(0,\frac{\alpha^{2}}{N}I_{d})
+\]
+
+This process is known as vector autoregression VAR(1) or discrete-time
+OU process. We can write down the generative process of $\theta_{T}$
+recursively. 
+\begin{align*}
+\theta_{t} & =H\theta_{t-1}+\eta_{t-1}\\
+ & =H(H\theta_{t-2}+\eta_{t-2})+\eta_{t-1}\\
+ & =H^{2}\theta_{t-2}+H\eta_{t-2}+\eta_{t-1}\\
+ & =H^{3}\theta_{t-3}+H^{2}\eta_{t-3}+H\eta_{t-2}+\eta_{t-1}\\
+ & =H^{t}\theta_{0}+\sum_{i=1}^{t}H^{i-1}\eta_{t-i}
+\end{align*}
+
+Note let $\mathbf{u}_{k},\lambda_{k}$ be the eigenvector and eigenvalue
+of $Q$, then 
+\begin{align*}
+H & =I-\frac{\alpha\sigma}{\sigma_{R}}Q\\
+ & =\sum_{k=1}^{d}(1-\frac{\alpha\sigma}{\sigma_{R}}\lambda_{k})\mathbf{u}_{k}\mathbf{u}_{k}^{\top}
+\end{align*}
+ 
+
+In this simplification, the distribution comes from the independent
+Gaussian random vectors $\{\eta_{i}\}$, thus it's still Gaussian
+distributed. 
+
+Thus we can write down the expectation, which only depends on the
+first term. 
+\begin{align*}
+\mathbb{E}[\theta_{t}] & =H^{t}\theta_{0}\\
+ & =\sum_{k=1}^{d}(1-\frac{\alpha\sigma}{\sigma_{R}}\lambda_{k})^{t}\mathbf{u}_{k}\mathbf{u}_{k}^{\top}\theta_{0}
+\end{align*}
+
+Asymptotically, 
+\begin{align*}
+\lim_{t\to\infty}\mathbb{E}[\theta_{t}] & =\lim_{t\to\infty}H^{t}\theta_{0}\\
+ & =\lim_{t\to\infty}\sum_{k=1}^{d}(1-\frac{\alpha\sigma}{\sigma_{R}}\lambda_{k})^{t}\mathbf{u}_{k}\mathbf{u}_{k}^{\top}\theta_{0}
+\end{align*}
+
+\begin{itemize}
+\item For flat dimensions $\lambda_{k}=0$, then $\lim_{t\to\infty}(1-\frac{\alpha\sigma}{\sigma_{R}}\lambda_{k})^{t}=1$,
+thus on expectation the solution won't move on that direction $\lim_{t\to\infty}\mathbb{E}[\mathbf{u}_{k}^{\top}\theta_{t}]=\mathbf{u}_{k}^{\top}\theta_{0}$
+\item If $|1-\frac{\alpha\sigma}{\sigma_{R}}\lambda_{k}|>1$, this will
+diverge to infinity. $\lim_{t\to\infty}\mathbb{E}[\mathbf{u}_{k}^{\top}\theta_{t}]=\infty$ 
+\begin{itemize}
+\item Specifically, when $\lambda_{k}<0$ concave dimensions
+\item or for $\frac{\alpha\sigma}{\sigma_{R}}\lambda_{k}>2$, this will
+diverge. This could happen for very sharply curved directions where
+curvature exceeds $\lambda_{k}>2\frac{\sigma_{R}}{\alpha\sigma}$.
+Note for gradient descent this could also be caused by too high learning
+rate, but here $\alpha=\sigma/2$. 
+\end{itemize}
+\end{itemize}
+The covariance depends on the summation $\sum_{i=1}^{t}H^{i-1}\eta_{t-i}$,
+using the i.i.d. property of the noise $\{\eta_{i}\}$ and the Gaussian
+distribution of noise, 
+\begin{align*}
+\mathrm{Cov}[\theta_{t}] & =\mathrm{Cov}[\sum_{i=1}^{t}H^{i-1}\eta_{t-i}]\\
+ & =\sum_{i=1}^{t}\mathrm{Cov}[H^{i-1}\eta_{t-i}]\\
+ & =\sum_{i=1}^{t}(H^{i-1})\mathrm{Cov}[\eta_{t-i}](H^{i-1})^{\top}\\
+ & =\sum_{i=1}^{t}(H^{i-1})^{2}\frac{\alpha^{2}}{N}I_{d}\\
+ & =\frac{\alpha^{2}}{N}\sum_{i=0}^{t-1}H^{2i}
+\end{align*}
+
+Thus the variance along one eigen axis is the sum of this series.
+\begin{align*}
+\mathrm{Cov}[\mathbf{u}_{k}^{\top}\theta_{t}] & =\frac{\alpha^{2}}{N}\mathbf{u}_{k}^{\top}\sum_{i=0}^{t-1}H^{2i}\mathbf{u}_{k}\\
+ & =\frac{\alpha^{2}}{N}\sum_{i=0}^{t-1}(1-\frac{\alpha\sigma}{\sigma_{R}}\lambda_{k})^{2i}
+\end{align*}
+
+Using the formula for finite term sum of geometric series, 
+\[
+\sum_{k=0}^{t-1}x^{k}=\begin{cases}
+\dfrac{1-x^{t}}{1-x}, & x\neq1,\\[6pt]
+t, & x=1.
+\end{cases}
+\]
+
+note that for finite terms this identity holds for $|x|>1$. 
+
+\noindent\begin{minipage}[t]{1\columnwidth}%
+Short derivation
+
+\begin{align*}
+1+x+x^{2}+...x^{t-1} & =S\\
+S+x^{t}(\sum_{i=0}^{\infty}x^{i}) & =(\sum_{i=0}^{\infty}x^{i})\\
+S & =(1-x^{t})(\sum_{i=0}^{\infty}x^{i})\\
+S & =\frac{1-x^{t}}{1-x}
+\end{align*}
+%
+\end{minipage}
+
+The key quantity here is $\gamma^{2}:=(1-\frac{\alpha\sigma}{\sigma_{R}}\lambda_{k})^{2}$
+and its relation to $1$. $(1-\frac{\alpha\sigma}{\sigma_{R}}\lambda_{k})^{2}=1$
+entails $\lambda_{k}=0$ or $\lambda_{k}=\frac{2\sigma_{R}}{\alpha\sigma}$Thus,
+along an eigen direction, the variance reads, 
+
+\[
+\mathrm{Cov}[\mathbf{u}_{k}^{\top}\theta_{t}]=\frac{\alpha^{2}}{N}\begin{cases}
+\frac{1-(1-\frac{\alpha\sigma}{\sigma_{R}}\lambda_{k})^{2t}}{1-(1-\frac{\alpha\sigma}{\sigma_{R}}\lambda_{k})^{2}}, & \text{otherwise}\\[6pt]
+t, & \lambda_{k}\in\{0,\frac{2\sigma_{R}}{\alpha\sigma}\}
+\end{cases}
+\]
+
+\[
+\mathrm{Cov}[\mathbf{u}_{k}^{\top}\theta_{t}]=\frac{\alpha^{2}}{N}\begin{cases}
+\frac{1-\gamma^{2t}}{1-\gamma^{2}}, & \text{otherwise}\\[6pt]
+t, & \gamma^{2}=0,\text{i.e. }\lambda_{k}\in\{0,\frac{2\sigma_{R}}{\alpha\sigma}\}
+\end{cases}
+\]
+
+\begin{itemize}
+\item In the extreme case, $\lambda_{k}=0$, then $\mathrm{Cov}[\mathbf{u}_{k}^{\top}\theta_{t}]=\frac{\alpha^{2}}{N}t$,
+recovering the linear scaling of random walk. Similarly for $\lambda_{k}=\frac{2\sigma_{R}}{\alpha\sigma}$,
+it increase linearly. 
+\item $\lambda_{k}<0$ i.e. concave directions, $(1-\frac{\alpha\sigma}{\sigma_{R}}\lambda_{k})^{2}>1$,
+then this series will diverge towards infinity. $\lim_{t\to\infty}\mathrm{Cov}[\mathbf{u}_{k}^{\top}\theta_{t}]=\infty$
+\item For $\lambda_{k}\geq\frac{2\sigma_{R}}{\alpha\sigma}$, convex direction
+with too high curvature, then $|1-\frac{\alpha\sigma}{\sigma_{R}}\lambda_{k}|\geq1$,
+then this series will diverge $\lim_{t\to\infty}\mathrm{Cov}[\mathbf{u}_{k}^{\top}\theta_{t}]=\infty$.
+\item For $0<\lambda_{k}<\frac{2\sigma_{R}}{\alpha\sigma}$, then $|1-\frac{\alpha\sigma}{\sigma_{R}}\lambda_{k}|<1$,
+then this series will converge, this is the desirable case for optimization.
+Asymptotically, 
+\begin{align*}
+\lim_{t\to\infty}\mathrm{Cov}[\mathbf{u}_{k}^{\top}\theta_{t}] & =\frac{\alpha^{2}}{N}\frac{1}{1-(1-\frac{\alpha\sigma}{\sigma_{R}}\lambda_{k})^{2}}\\
+ & =\frac{\alpha^{2}}{N}\frac{1}{1-\gamma^{2}}
+\end{align*}
+
+\begin{itemize}
+\item The convergence speed is inversely proportional to $\gamma^{2}:=(1-\frac{\alpha\sigma}{\sigma_{R}}\lambda_{k})^{2}$.
+When $\gamma^{2}$ close to $0$, the series $\gamma^{2t}$ converges
+faster; when $\gamma^{2}\sim1$, the convergence time gets longer
+and longer. 
+\item Convergence timescale can be computed $1-\gamma^{2\tau}=1/2$, then
+$\log\frac{1}{2}=\tau\log\gamma^{2}$, $\tau=-\frac{\log2}{\log\gamma^{2}}=-\frac{\log2}{\log(1-\frac{\alpha\sigma}{\sigma_{R}}\lambda_{k})^{2}}$
+is the characteristic time scale. 
+\item The converged level is also controlled by $\gamma^{2}$, specifically
+$\frac{\alpha^{2}}{N}\frac{1}{1-\gamma^{2}}$. When $\gamma^{2}$
+close to $0$, converged level is lower; when $\gamma^{2}\sim1$ the
+converged level grow towards infinity
+\item Thus directions where $\lambda_{k}\sim\frac{\sigma_{R}}{\alpha\sigma}$
+converge the fastest and the variance are the tightest $\lim_{t\to\infty}\mathrm{Cov}[\mathbf{u}_{k}^{\top}\theta_{t}]\sim\frac{\alpha^{2}}{N}$.
+Showing that these directions are the most well controlled by the
+landscape asymptotically. Specifically when $\lambda_{k}=\frac{\sigma_{R}}{\alpha\sigma}$,
+then this direction converges in one iteration $H\theta_{0}$. 
+\end{itemize}
+\end{itemize}
+In summary, for the simplified process 
+
+
+
+\end{document}
