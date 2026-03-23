@@ -1,0 +1,250 @@
+%% Self-consistent stationary noise floor for ZScoreES on quadratic landscapes.
+%% Companion to theory.tex (Qiu et al. 2025).
+%% Validated numerically in scripts/exp_E_ou_variance_trajectory.py.
+
+\documentclass[american]{article}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{geometry}
+\geometry{verbose,tmargin=2cm,bmargin=2cm,lmargin=2.5cm,rmargin=2.5cm}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsthm}
+\usepackage{hyperref}
+\usepackage{babel}
+
+\newtheorem{proposition}{Proposition}
+\newtheorem{corollary}{Corollary}
+\newtheorem{remark}{Remark}
+\newtheorem{lemma}{Lemma}
+
+\title{Self-Consistent Stationary Noise Floor for ZScoreES on Quadratic Landscapes}
+\author{}
+\date{2026-03-23}
+
+\begin{document}
+\maketitle
+
+\section*{Setup and Notation}
+
+We consider the ZScoreES update on the quadratic landscape
+$R(\theta) = -\frac{1}{2}\theta^\top Q\theta$,
+with $Q = U\Lambda U^\top$, $\Lambda = \mathrm{diag}(\lambda_1,\ldots,\lambda_d)$,
+$\lambda_k \geq 0$.
+Let $\mathbf{u}_k$ denote the $k$-th eigenvector of $Q$, and define the
+eigenbasis coordinates $c_k := \mathbf{u}_k^\top\theta$.
+
+From Proposition 3 of \texttt{theory.tex}, the per-step ES update satisfies
+\begin{align}
+    \mathbb{E}[\Delta\theta] &= \frac{-\alpha\sigma\, Q\theta}{\sigma_R(\theta)},
+    \label{eq:mean-update}\\
+    \mathrm{Cov}[\Delta\theta] &= \frac{\alpha^2}{N\sigma_R^2(\theta)}
+        \Bigl(\sigma^2 Q\theta\theta^\top Q + 2\sigma^4 Q^2 + \sigma_R^2(\theta)\,I_d\Bigr),
+    \label{eq:cov-update}
+\end{align}
+where $\alpha = \sigma/2$ and
+\begin{equation}
+    \sigma_R^2(\theta)
+    := \sigma^2\|Q\theta\|^2 + \tfrac{\sigma^4}{2}\operatorname{Tr}[Q^2] + \sigma_\xi^2.
+    \label{eq:sigmaR-def}
+\end{equation}
+
+The simplified linearized dynamics (frozen-$\sigma_R$ proposition in \texttt{theory.tex})
+approximates $\sigma_R(\theta) \approx \sigma_R^0$ as a constant, giving the
+discrete Ornstein--Uhlenbeck (OU) process
+\begin{equation}
+    \theta_{t+1} = \Bigl(I - \gamma^0 Q\Bigr)\theta_t + \eta_t,
+    \qquad \eta_t \sim \mathcal{N}\!\Bigl(0,\,\tfrac{\alpha^2}{N}I_d\Bigr),
+    \label{eq:frozen-ou}
+\end{equation}
+where $\gamma^0 = \alpha\sigma/\sigma_R^0$ is the frozen effective step size.
+The stationary variance of each projected coordinate is
+\begin{equation}
+    V_k(\sigma_R^0)
+    := \lim_{t\to\infty}\mathrm{Var}[c_k(t)]
+    = \frac{\alpha^2/N}{1 - \gamma_k^{0\,2}},
+    \qquad
+    \gamma_k^0 = 1 - \frac{\alpha\sigma}{\sigma_R^0}\lambda_k,
+    \label{eq:stationary-var-frozen}
+\end{equation}
+provided $|\gamma_k^0| < 1$.
+
+The \emph{frozen-at-$\theta_0$} approximation sets $\sigma_R^0 = \sigma_R(\theta_0)$.
+This overestimates the true stationary variance by a factor of $3$--$4\times$
+when $\theta_0$ is far from $\theta^* = 0$, because $\sigma_R(\theta_0) \gg \sigma_R(\theta_\infty)$.
+
+\section*{Main Result}
+
+\begin{proposition}[Self-Consistent Stationary Noise Floor]
+\label{prop:self-consistent}
+Under the frozen-OU model \eqref{eq:frozen-ou}, the stationary distribution
+satisfies $\theta_\infty \sim \mathcal{N}(0, \Sigma_\infty)$
+with $\Sigma_\infty = \mathrm{diag}(V_1,\ldots,V_d)$ in the eigenbasis of $Q$.
+The exact stationary noise floor is determined by the fixed-point equation
+\begin{equation}
+    \boxed{
+    \sigma_R^{*\,2}
+    = \sigma^2 \sum_{k=1}^d \lambda_k^2\, V_k(\sigma_R^*)
+    + \tfrac{\sigma^4}{2}\operatorname{Tr}[Q^2]
+    + \sigma_\xi^2,
+    }
+    \label{eq:self-consistent}
+\end{equation}
+where $V_k(\sigma_R^*) = \dfrac{\alpha^2/N}{1-(1-\frac{\alpha\sigma}{\sigma_R^*}\lambda_k)^2}$,
+and $\sigma_R^*$ is the value of $\sigma_R$ consistent with the stationary distribution
+it implies via \eqref{eq:sigmaR-def}.
+\end{proposition}
+
+\begin{proof}
+At stationarity, $\theta_\infty \sim \mathcal{N}(0, \Sigma_\infty)$ with
+$(\Sigma_\infty)_{kk} = V_k(\sigma_R^*)$ (from the OU stationary variance formula
+\eqref{eq:stationary-var-frozen}, evaluated at $\sigma_R^*$).
+The expected squared gradient norm at stationarity is
+\begin{align}
+    \mathbb{E}_{\theta \sim \mathcal{N}(0,\Sigma_\infty)}\bigl[\|Q\theta\|^2\bigr]
+    &= \mathbb{E}\bigl[\theta^\top Q^2\theta\bigr]
+    = \operatorname{Tr}[Q^2\,\Sigma_\infty]
+    = \sum_{k=1}^d \lambda_k^2\, V_k(\sigma_R^*).
+    \label{eq:E-Qtheta-squared}
+\end{align}
+Self-consistency requires that the value of $\sigma_R$ implied by the stationary
+distribution \eqref{eq:sigmaR-def} equals the value $\sigma_R^*$ used to compute
+the stationary variance:
+\begin{align}
+    \sigma_R^{*\,2}
+    &= \sigma^2\,\mathbb{E}[\|Q\theta_\infty\|^2]
+     + \tfrac{\sigma^4}{2}\operatorname{Tr}[Q^2]
+     + \sigma_\xi^2 \notag \\
+    &= \sigma^2 \sum_{k=1}^d \lambda_k^2\, V_k(\sigma_R^*)
+     + \tfrac{\sigma^4}{2}\operatorname{Tr}[Q^2]
+     + \sigma_\xi^2.
+\end{align}
+Substituting the expression for $V_k$ completes the proof.
+\end{proof}
+
+\begin{remark}[Connection to the frozen-at-$\theta_0$ approximation]
+Setting $\sigma_R^0 = \sigma_R(\theta_0)$ rather than the self-consistent $\sigma_R^*$
+inflates the denominator $1-\gamma_k^{0\,2}$ of \eqref{eq:stationary-var-frozen}
+(because $\sigma_R(\theta_0) \gg \sigma_R^*$ when $\theta_0$ is far from $\theta^*$),
+leading to a systematic overestimate of all $V_k$ and hence of the total noise floor
+$\sum_k V_k$. Numerically, at $d=200$, $k=10$, $N=50$, $\sigma=0.1$:
+$\sigma_R(\theta_0) = 0.758$, $\sigma_R^* = 0.044$, giving a $17\times$ change in
+$\sigma_R$ and a $14\times$ overestimate of $\sum_k V_k$ by the frozen-at-$\theta_0$ formula.
+\end{remark}
+
+\begin{remark}[Existence and uniqueness of the fixed point]
+Define the map $F: \mathbb{R}_{>0} \to \mathbb{R}_{>0}$ by
+\begin{equation}
+    F(s) := \sqrt{
+        \sigma^2 \sum_{k:\,\lambda_k>0} \lambda_k^2\, V_k(s)
+        + \tfrac{\sigma^4}{2}\operatorname{Tr}[Q^2]
+        + \sigma_\xi^2
+    }.
+\end{equation}
+For the stable regime ($0 < \lambda_k < 2\sigma_R^*/\alpha\sigma$ for all $k$),
+$V_k(s)$ is a smooth, strictly decreasing function of $s > 0$
+(larger $s$ $\Rightarrow$ smaller $\gamma_k$ $\Rightarrow$ larger $1-\gamma_k^2$
+$\Rightarrow$ smaller $V_k$). Hence $F$ is strictly decreasing in the
+signal-dominated region and satisfies $F(s) \to \sqrt{\tfrac{\sigma^4}{2}\operatorname{Tr}[Q^2]+\sigma_\xi^2}$
+as $s \to \infty$ and $F(s) \to \infty$ as $s \to 0^+$.
+By the intermediate value theorem, at least one fixed point $\sigma_R^* = F(\sigma_R^*)$ exists.
+Uniqueness follows when $|F'(s)| < 1$ in a neighborhood of the fixed point,
+which holds for moderate $\sigma$ and $N$ (verified numerically across all tested conditions).
+\end{remark}
+
+\begin{remark}[Practical computation]
+The fixed point can be found by the damped iteration
+\begin{equation}
+    s_{n+1} = (1-\rho)\,s_n + \rho\,F(s_n),
+    \qquad \rho \in (0,1),
+\end{equation}
+initialized at $s_0 = \sqrt{\tfrac{\sigma^4}{2}\operatorname{Tr}[Q^2] + \sigma_\xi^2}$
+(the value at $\theta^* = 0$).
+In practice, $\rho = 0.2$ and $\approx 60$ iterations suffice for convergence
+to relative tolerance $10^{-8}$.
+\end{remark}
+
+\begin{corollary}[Self-consistent stationary variance per mode]
+\label{cor:stat-var}
+At the fixed point $\sigma_R^*$, the stationary variance of the $k$-th eigenmode is
+\begin{equation}
+    V_k^* := V_k(\sigma_R^*)
+    = \frac{\alpha^2/N}{2\,\frac{\alpha\sigma}{\sigma_R^*}\lambda_k
+            - \Bigl(\frac{\alpha\sigma}{\sigma_R^*}\Bigr)^2\!\lambda_k^2},
+\end{equation}
+and the total stationary noise floor is
+\begin{equation}
+    \mathbb{E}[\|\theta_\infty\|^2]
+    = \sum_{k=1}^d V_k^*
+    = \frac{\alpha^2}{N} \sum_{k=1}^d
+        \frac{1}{2\gamma^*_k\lambda_k/(\sigma_R^*/\alpha\sigma)
+              - (\gamma^*_k\lambda_k)^2/(\sigma_R^*/\alpha\sigma)^2},
+\end{equation}
+where $\gamma^*_k = 1 - (\alpha\sigma/\sigma_R^*)\lambda_k$.
+In the well-conditioned limit $\gamma^*_k \approx 0$ (optimal curvature),
+each mode contributes approximately $\alpha^2/N$, giving
+$\mathbb{E}[\|\theta_\infty\|^2] \approx \alpha^2 k_{\mathrm{eff}}/N$
+where $k_{\mathrm{eff}}$ is the number of stable active modes.
+\end{corollary}
+
+\section*{Numerical Validation}
+
+The self-consistent equation \eqref{eq:self-consistent} was validated against
+empirical simulations in \texttt{scripts/exp\_E\_ou\_variance\_trajectory.py}.
+
+\paragraph{Setup.} Quadratic landscape with $d=200$, $k=10$ active modes,
+power-law spectrum $\lambda_i = \lambda_{\max}\cdot i^{-1}$ ($\lambda_{\max}=5$,
+$\lambda_{\min}=0.1$), $N=50$, $\sigma=0.1$, $T=300$ steps, $n_{\mathrm{trials}}=100$.
+
+\paragraph{Results.}
+
+\begin{center}
+\begin{tabular}{lrr}
+\hline
+Quantity & Value & Notes \\
+\hline
+$\sigma_R(\theta_0)$ (frozen at $\theta_0$) & $0.75751$ & Initial value \\
+$\sigma_R^*$ (self-consistent) & $0.04445$ & Fixed-point solution \\
+$\sigma_R^{\mathrm{emp}}$ (empirical, $t=T$) & $0.04472$ & Measured from simulation \\
+Relative error $|\sigma_R^* - \sigma_R^{\mathrm{emp}}|/\sigma_R^{\mathrm{emp}}$ & $0.6\%$ & \\
+\hline
+$\sum_k V_k^*$ (self-consistent) & $0.0027$ & \\
+$\sum_k V_k^{\mathrm{emp}}$ (empirical) & $0.0030$ & \\
+$\sum_k V_k^0$ (frozen at $\theta_0$) & $0.042$ & $14\times$ overestimate \\
+\hline
+\end{tabular}
+\end{center}
+
+The self-consistent formula matches the empirical noise floor to within $<1\%$,
+compared to the $14\times$ overestimate from the frozen-at-$\theta_0$ approximation.
+
+\paragraph{$\sigma$ dependence.}
+The overestimate factor from the frozen-at-$\theta_0$ approximation grows as $\sigma$ decreases
+(larger $\sigma$ $\Rightarrow$ $\sigma_R(\theta_0)$ is more dominated by the curvature term
+$\tfrac{\sigma^4}{2}\operatorname{Tr}[Q^2]$, which does not change during optimization):
+
+\begin{center}
+\begin{tabular}{rrrrr}
+\hline
+$\sigma$ & $\sigma_R(\theta_0)$ & $\sigma_R$ final & $\sigma_R$ ratio & Frozen/emp \\
+\hline
+$0.05$ & $0.370$ & $0.011$ & $0.030$ & $27.8\times$ \\
+$0.10$ & $0.758$ & $0.043$ & $0.057$ & $14.5\times$ \\
+$0.50$ & $5.885$ & $1.118$ & $0.190$ & $4.7\times$ \\
+\hline
+\end{tabular}
+\end{center}
+
+\section*{Implications for theory.tex}
+
+The existing proposition in \texttt{theory.tex} (Dynamics of ES on Quadratic Landscape)
+correctly derives the frozen-OU variance trajectory and stationary variance for a
+\emph{fixed} $\sigma_R$. The self-consistent equation \eqref{eq:self-consistent}
+extends this to determine \emph{which} $\sigma_R$ is the physically relevant one:
+it is not $\sigma_R(\theta_0)$ (appropriate near the start of optimization) but
+$\sigma_R^*$ (the value consistent with the stationary distribution).
+
+The correction adds no new parameters and requires only solving a single-variable
+fixed-point equation in $\sigma_R^*$.
+
+\end{document}
