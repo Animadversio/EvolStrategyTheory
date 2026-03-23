@@ -237,7 +237,7 @@ def theory_gamma(theta0, U, lam, sigma, alpha, xi):
     """Frozen-σ_R effective step size γ = ασ/σ_R(θ_0)."""
     v = Q_vec(U, lam, theta0)
     v_norm_sq = (v**2).sum().item()
-    tr_Q2 = (lam**4).sum().item()  # Tr[Q²] = Σ λ_i²  ... wait, Tr[Q^2]=Σλ_i²
+    tr_Q2 = (lam**2).sum().item()  # Tr[Q²] = Σ λ_i²  (Q=UΛU^T, so Q²=UΛ²U^T, Tr[Q²]=Σλ_i²)
     sigma_R = np.sqrt(sigma**2 * v_norm_sq + 0.5 * sigma**4 * tr_Q2 + xi**2)
     gamma = alpha * sigma / max(sigma_R, 1e-12)
     return gamma, sigma_R
@@ -278,7 +278,7 @@ def theory_noise_floor(lam, sigma, alpha, N, xi, d):
     """
     lam_np = lam.cpu().numpy()
     # σ_R at θ*=0: only curvature + obs noise terms
-    tr_Q2     = (lam**4).sum().item()   # Tr[Q²] = Σ λ_i²  (Q=UΛU^T → Q²=UΛ²U^T)
+    tr_Q2     = (lam**2).sum().item()   # Tr[Q²] = Σ λ_i²  (Q=UΛU^T → Q²=UΛ²U^T)
     sigma_R0  = np.sqrt(0.5 * sigma**4 * tr_Q2 + xi**2 + 1e-30)
     gamma0    = alpha * sigma / max(sigma_R0, 1e-12)
 
