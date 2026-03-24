@@ -171,3 +171,28 @@ checkpoints/
 logs/
 *.log
 wandb/
+# LaTeX compilation files
+*.aux
+*.bbl
+*.blg
+*.brf
+*.fls
+*.fdb_latexmk
+*.log
+*.out
+*.toc
+*.lof
+*.lot
+*.synctex.gz
+*.nav
+*.snm
+*.xdv
+*.pdfsync
+*.ps
+*.dvi
+
+# Directories
+latex.out/
+build/
+# End Generation Here
+```
