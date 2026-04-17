@@ -1,46 +1,79 @@
 1.4.6 More-realistic multi-step analysis on quadratic landscape
 
-Now consider the slightly more realistic model of ES dynamics, Recall that the iteration, \theta_{t+1}=\Big(I-\frac{\alpha\sigma}{\sigma_{R}}Q\Big)\ \theta_{t}+\eta_{t}
+Now consider the slightly more realistic model of ES dynamics, Recall that the iteration,
+\begin{equation}
+\theta_{t+1}=\Big(I-\frac{\alpha\sigma}{\sigma_{R}}Q\Big)\ \theta_{t}+\eta_{t}
+\end{equation}
 
-where, \mathrm{Cov}[\eta_{t}]	=\frac{\alpha^{2}}{N\sigma_{R}^{2}}\Big(\sigma^{2}\mathbf{v}\mathbf{v}^{\top}+2\sigma^{4}Q^{2}+\sigma_{R}^{2}I_{d}\Big)
-	=\frac{\alpha^{2}}{N}I_{d}+\frac{\alpha^{2}}{N\sigma_{R}^{2}}\Big(\sigma^{2}Q\theta_{t}\theta_{t}^{\top}Q+2\sigma^{4}Q^{2}\Big)
+where,
+\begin{align}
+\mathrm{Cov}[\eta_{t}]	&=\frac{\alpha^{2}}{N\sigma_{R}^{2}}\Big(\sigma^{2}\mathbf{v}\mathbf{v}^{\top}+2\sigma^{4}Q^{2}+\sigma_{R}^{2}I_{d}\Big) \\
+	&=\frac{\alpha^{2}}{N}I_{d}+\frac{\alpha^{2}}{N\sigma_{R}^{2}}\Big(\sigma^{2}Q\theta_{t}\theta_{t}^{\top}Q+2\sigma^{4}Q^{2}\Big)
+\end{align}
 
-and \sigma_{R}	=\sqrt{\sigma^{2}\|\mathbf{v}\|^{2}+\frac{\sigma^{4}}{2}\mathrm{Tr}[Q^{2}]+\sigma_{\xi}^{2}}
-	=\sqrt{\sigma^{2}\theta_{t}^{\top}Q^{2}\theta_{t}+\frac{\sigma^{4}}{2}\mathrm{Tr}[Q^{2}]+\sigma_{\xi}^{2}}
+and
+\begin{align}
+\sigma_{R}	&=\sqrt{\sigma^{2}\|\mathbf{v}\|^{2}+\frac{\sigma^{4}}{2}\mathrm{Tr}[Q^{2}]+\sigma_{\xi}^{2}} \\
+	&=\sqrt{\sigma^{2}\theta_{t}^{\top}Q^{2}\theta_{t}+\frac{\sigma^{4}}{2}\mathrm{Tr}[Q^{2}]+\sigma_{\xi}^{2}}
+\end{align}
 
-to simplify we could assume it's Gaussian, 
+to simplify we could assume it's Gaussian,
 
 More realistic ES dynamics
 
-Consider the simplification to OU process but the \sigma_{R} is computed and updated at each step \sigma_{R,t}. \theta_{t+1}=\Big(I-\frac{\alpha\sigma}{\sigma_{R,t}}Q\Big)\ \theta_{t}+\eta_{t}\sigma_{R,t}=\sqrt{\sigma^{2}\theta_{t}^{\top}Q^{2}\theta_{t}+\frac{\sigma^{4}}{2}\mathrm{Tr}[Q^{2}]+\sigma_{\xi}^{2}}
+Consider the simplification to OU process but the $\sigma_{R}$ is computed and updated at each step $\sigma_{R,t}$.
+\begin{equation}
+\theta_{t+1}=\Big(I-\frac{\alpha\sigma}{\sigma_{R,t}}Q\Big)\ \theta_{t}+\eta_{t}
+\end{equation}
+\begin{equation}
+\sigma_{R,t}=\sqrt{\sigma^{2}\theta_{t}^{\top}Q^{2}\theta_{t}+\frac{\sigma^{4}}{2}\mathrm{Tr}[Q^{2}]+\sigma_{\xi}^{2}}
+\end{equation}
 
-and we still simplify the noise part as an isotropic Gaussian, hoping this term dominate the full covariance. \eta_{t}\sim\mathcal{N}(0,\frac{\alpha^{2}}{N}I_{d})
+and we still simplify the noise part as an isotropic Gaussian, hoping this term dominate the full covariance.
+\begin{equation}
+\eta_{t}\sim\mathcal{N}(0,\frac{\alpha^{2}}{N}I_{d})
+\end{equation}
 
 Mode-by-mode ES dynamics
 
-This system can be equivalently written mode per mode. Let the projection x_{k,t}=\mathbf{u}_{k}^{\top}\theta_{t}, then the scalar equations arex_{k,t+1}=(1-\frac{\alpha\sigma}{\sigma_{R,t}}\lambda_{k})x_{k,t}+\eta_{k,t},\quad\eta_{k,t}\sim\mathcal{N}(0,\frac{\alpha^{2}}{N})\sigma_{R,t}=\sqrt{\sigma^{2}\sum_{k}\lambda_{k}^{2}x_{k,t}^{2}+\frac{\sigma^{4}}{2}\sum_{k}\lambda_{k}^{2}+\sigma_{\xi}^{2}}
+This system can be equivalently written mode per mode. Let the projection $x_{k,t}=\mathbf{u}_{k}^{\top}\theta_{t}$, then the scalar equations are
+\begin{equation}
+x_{k,t+1}=(1-\frac{\alpha\sigma}{\sigma_{R,t}}\lambda_{k})x_{k,t}+\eta_{k,t},\quad\eta_{k,t}\sim\mathcal{N}(0,\frac{\alpha^{2}}{N})
+\end{equation}
+\begin{equation}
+\sigma_{R,t}=\sqrt{\sigma^{2}\sum_{k}\lambda_{k}^{2}x_{k,t}^{2}+\frac{\sigma^{4}}{2}\sum_{k}\lambda_{k}^{2}+\sigma_{\xi}^{2}}
+\end{equation}
 
-Thus each projection mode evolves independently as OU process, except that the reward variance term \sigma_{R,t} added a global coupling between all modes. 
+Thus each projection mode evolves independently as OU process, except that the reward variance term $\sigma_{R,t}$ added a global coupling between all modes.
 
 Moment closure / Mean field approximation
 
-We could tackle this via a mean field approximation, i.e. \sigma_{R,t}\approx\bar{\sigma_{R,t}}:=\sqrt{\sigma^{2}\mathbb{E}[\sum_{k}\lambda_{k}^{2}x_{k,t}^{2}]+\frac{\sigma^{4}}{2}\sum_{k}\lambda_{k}^{2}+\sigma_{\xi}^{2}}
+We could tackle this via a mean field approximation, i.e.
+\begin{equation}
+\sigma_{R,t}\approx\bar{\sigma_{R,t}}:=\sqrt{\sigma^{2}\mathbb{E}[\sum_{k}\lambda_{k}^{2}x_{k,t}^{2}]+\frac{\sigma^{4}}{2}\sum_{k}\lambda_{k}^{2}+\sigma_{\xi}^{2}}
+\end{equation}
 
-With this approximation we can write down the closed iteration equation, let m_{k,t}:=\mathbb{E}[x_{k,t}],v_{k,t}:=\mathrm{Var}[x_{k,t}]m_{k,t+1}	=\big(1-\frac{\alpha\sigma}{\bar{\sigma}_{R,t}}\lambda_{k}\big)m_{k,t}
-v_{k,t+1}	=\big(1-\frac{\alpha\sigma}{\bar{\sigma}_{R,t}}\lambda_{k}\big)^{2}v_{k,t}+\frac{\alpha^{2}}{N}
-\bar{\sigma}_{R,t}	:=\sqrt{\sigma^{2}\sum_{k}\lambda_{k}^{2}(m_{k,t}^{2}+v_{k,t})+\frac{\sigma^{4}}{2}\sum_{k}\lambda_{k}^{2}+\sigma_{\xi}^{2}}
+With this approximation we can write down the closed iteration equation, let $m_{k,t}:=\mathbb{E}[x_{k,t}]$, $v_{k,t}:=\mathrm{Var}[x_{k,t}]$
+\begin{align}
+m_{k,t+1}	&=\big(1-\frac{\alpha\sigma}{\bar{\sigma}_{R,t}}\lambda_{k}\big)m_{k,t} \\
+v_{k,t+1}	&=\big(1-\frac{\alpha\sigma}{\bar{\sigma}_{R,t}}\lambda_{k}\big)^{2}v_{k,t}+\frac{\alpha^{2}}{N} \\
+\bar{\sigma}_{R,t}	&:=\sqrt{\sigma^{2}\sum_{k}\lambda_{k}^{2}(m_{k,t}^{2}+v_{k,t})+\frac{\sigma^{4}}{2}\sum_{k}\lambda_{k}^{2}+\sigma_{\xi}^{2}}
+\end{align}
 
-Note also that the low dimensional observables (i.e. rewards), note these expectation and variances are across the potential trajectories \mathbb{E}_{\theta_{t}}[R(\theta_{t})]	=-\frac{1}{2}\sum_{k=1}^{d}\lambda_{k}\Big(\mathbb{E}[\mathbf{u}_{k}^{\top}\theta_{t}]^{2}+\mathrm{Cov}[\mathbf{u}_{k}^{\top}\theta_{t}]\Big)
-	=-\frac{1}{2}\sum_{k=1}^{d}\lambda_{k}\Big(m_{k,t}^{2}+v_{k,t}\Big)
-\mathrm{Var}_{\theta_{t}}[R(\theta_{t})]	=\sum_{k=1}^{d}\lambda_{k}^{2}\Big(\mathbb{E}[\mathbf{u}_{k}^{\top}\theta_{t}]^{2}\mathrm{Cov}[\mathbf{u}_{k}^{\top}\theta_{t}]+\frac{1}{2}\mathrm{Cov}[\mathbf{u}_{k}^{\top}\theta_{t}]^{2}\Big)
-	=\sum_{k=1}^{d}\lambda_{k}^{2}\Big(m_{k,t}^{2}v_{k,t}+\frac{1}{2}v_{k,t}^{2}\Big)
+Note also that the low dimensional observables (i.e. rewards), note these expectation and variances are across the potential trajectories
+\begin{align}
+\mathbb{E}_{\theta_{t}}[R(\theta_{t})]	&=-\frac{1}{2}\sum_{k=1}^{d}\lambda_{k}\Big(\mathbb{E}[\mathbf{u}_{k}^{\top}\theta_{t}]^{2}+\mathrm{Cov}[\mathbf{u}_{k}^{\top}\theta_{t}]\Big) \\
+	&=-\frac{1}{2}\sum_{k=1}^{d}\lambda_{k}\Big(m_{k,t}^{2}+v_{k,t}\Big) \\
+\mathrm{Var}_{\theta_{t}}[R(\theta_{t})]	&=\sum_{k=1}^{d}\lambda_{k}^{2}\Big(\mathbb{E}[\mathbf{u}_{k}^{\top}\theta_{t}]^{2}\mathrm{Cov}[\mathbf{u}_{k}^{\top}\theta_{t}]+\frac{1}{2}\mathrm{Cov}[\mathbf{u}_{k}^{\top}\theta_{t}]^{2}\Big) \\
+	&=\sum_{k=1}^{d}\lambda_{k}^{2}\Big(m_{k,t}^{2}v_{k,t}+\frac{1}{2}v_{k,t}^{2}\Big)
+\end{align}
 
-Key observation: 
+Key observation:
 
-• When a eigen-mode is flat, it's totally decoupled from the global coupling \sigma_{R,t} and the reward observables R(\theta_{t}). Basically these modes have no interaction and becomes free particles. 
+• When a eigen-mode is flat, it's totally decoupled from the global coupling $\sigma_{R,t}$ and the reward observables $R(\theta_{t})$. Basically these modes have no interaction and becomes free particles.
 
-– Thus from the observable and reward statistics perspective, the dynamic system is effectively running in the task relevant subspace, with the null space freely random walking. 
+– Thus from the observable and reward statistics perspective, the dynamic system is effectively running in the task relevant subspace, with the null space freely random walking.
 
-• The weakly relevant modes are less coupled to the global dynamics 
+• The weakly relevant modes are less coupled to the global dynamics
 
-• If one desires, one could analyze the full dynamic system via a full DMFT treatment. 
+• If one desires, one could analyze the full dynamic system via a full DMFT treatment.
